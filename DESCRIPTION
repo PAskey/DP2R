@@ -5,8 +5,11 @@ Version: 0.1.0
 Author: PJ Askey
 Maintainer: Paul Askey <Paul.Askey@gofishbc.com>
 Description: This package provides convenience functions to load and wrangle raw data from DataPond into a format convenient for typical fisheries management type analyses in R. 
-    The package funcitons are meant automate the initial steps likely to be used for any analyses of the provincial DataPond dataset in R.
+    The package functions automate the initial steps likely to be used for any analyses of the provincial DataPond dataset in R.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)
+Imports: magrittr

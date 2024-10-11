@@ -21,7 +21,6 @@
 #' DP2R()
 #'
 #' @importFrom magrittr "%>%"
-#' @importFrom rlang .data
 
 
 DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCount","vwWaterbodyLake"),
@@ -56,7 +55,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCo
   }
 
   # Load each table excluding specified data types
-  out <- lapply(setNames(nm = Tables), function(tb) {
+  out <- lapply(stats::setNames(nm = Tables), function(tb) {
     ret <- tryCatch(
       fetch_data_excluding_types(conn, tb, exclude_types),
       error = function(e) conditionMessage(e))

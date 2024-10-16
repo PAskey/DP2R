@@ -33,13 +33,10 @@ Effort2R <- function() {
                          pwd = pwd")}
 
 
-DP2R::DP2R(Tables = "vwEffort")
+DP2R::DP2R(Tables = c("vwEffort","vwWaterbodyLake"))
 
 #Rename some variables, add some and filter to valid data
-Edata = vwEffort%>%dplyr::rename(WBID = 'waterbody_identifier',
-                                 method = 'fishing_effort_type',
-                                 year = 'assess_year')%>%
-                   dplyr::mutate(date = as.Date(assessed_dt),
+Edata = vwEffort%>%dplyr::mutate(date = as.Date(assessed_dt),
                                  month = lubridate::month(date),
                                  hour = lubridate::hour(assessed_dt))%>%
                    dplyr::filter(method!='TRL',
@@ -54,35 +51,47 @@ Edata = vwEffort%>%dplyr::rename(WBID = 'waterbody_identifier',
 #data(DayTypes)
 Edata<-dplyr::left_join(Edata, DayTypes[,c('date','daytype')], by = "date")
 
-#Create a grouping variable for the point of view, lake and year
-#This is the scale of an effort estimate
+#Create a set of grouping variables for analyses.
+#view_yr is the point of view, lake and year, and is the basic unit of total angler effort estimates (previous analyses called this cam_yr).
+#lake_hr allows comparison of different instantaneous count methods of the same lake-hour.
+
 Edata = Edata%>%dplyr::group_by(WBID, method, view_location_name, year)%>%
-                dplyr::mutate(cam_yr = dplyr::cur_group_id())%>%
+                dplyr::mutate(lakeview_yr = dplyr::cur_group_id())%>%
+                dplyr::group_by(WBID, date, hour)%>%
+                dplyr::mutate(lake_hr = dplyr::cur_group_id())%>%
                 dplyr::ungroup()
 
 #Remove data with less than a minimum sample size of counts per cam_yr
 min_days = 12 #Even 12 count days would not be very reliable estimate, but in the interest of keeping as much data as possible. This cutoff keeps a lot of the data.
-tmp<- Edata %>% dplyr::group_by(cam_yr)%>%
+tmp<- Edata %>% dplyr::group_by(lakeview_yr)%>%
   dplyr::summarize(days= length(unique(date)))%>%
   dplyr::filter(days >= min_days)%>%
-  dplyr::pull(cam_yr)
+  dplyr::pull(lakeview_yr)
 
-Edata <-dplyr::filter(Edata, cam_yr %in% tmp)
+Edata <-dplyr::filter(Edata, lakeview_yr %in% tmp)
 rm(tmp)
 
 #Convert categorical and character variables to factors for statistical modelling
-Edata = Edata%>%dplyr::mutate(year = factor(year),
-                              month = stats::relevel(factor(month), "5"),
-                              hour = stats::relevel(factor(hour), "12"),
-                              daytype = stats::relevel(factor(daytype),"WE"),
-                              cam_yr = factor(cam_yr))
+Edata = fac.data(Edata, vars = list("year" = NULL, "month" = "5", "hour" = "12", "daytype" = "WE", "lakeview_yr" = NULL, "lake_hr" = NULL))
 
-#Crate table for ice fishing and open water separately
+
+#OE (observed effort) column is the total effort counted at one time across all modes: shore, boat spv.
+Edata = Edata%>%dplyr::mutate(OE = rowSums(dplyr::across(c(num_shore_ice, num_spv, num_boat)),na.rm = TRUE))
+
+###################################################################################
+#REMOVE THIS SECTION ONCE VIEW IS UPDATED
+Edata = merge(Edata, vwWaterbodyLake[,c("WBID","region","gazetted_name")], by = "WBID")
+
+###################################################################################
+
+#Create table for ice fishing and open water separately
+#OE (observed effort) column is the total effort counted at one time across all modes: ice, tents.
 Icedata = Edata%>%dplyr::filter(month %in% c(1:3,12),
                                 hour %in% c(8:18),
                                 !ice_cover_code %in% c("OPEN","PARTIAL"),
                                 is.na(num_boat))%>%
-                  dplyr::mutate(month = stats::relevel(factor(month), "1"))
+                  dplyr::mutate(month = stats::relevel(factor(month), "1"),
+                                OE = rowSums(dplyr::across(c(num_shore_ice, num_ice_tent)), na.rm = TRUE))
 
 Edata = Edata%>%dplyr::filter(month %in% c(4:10), !ice_cover_code %in% c("COVERED"))
 

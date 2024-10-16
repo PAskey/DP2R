@@ -39,6 +39,16 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCo
 
   stopifnot(is.null(envir) || inherits(envir, "environment"))
 
+  # Identify invalid tables or spelling mistakes
+  invalid_tables <- Tables[!Tables %in% DBI::dbListTables(conn)]
+
+  # Stop if any tables are invalid
+  if (length(invalid_tables) > 0) {
+    stop(paste("The following tables do not exist in the database:",
+               paste(invalid_tables, collapse = ", ")))
+  }
+
+
   fetch_data_excluding_types <- function(conn, table_name, exclude_types) {
     # Get column information
     col_info <- DBI::dbGetQuery(conn, paste0("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'"))
@@ -54,12 +64,66 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCo
     DBI::dbGetQuery(conn, query)
   }
 
+  #Rename some columns to shorter, standard descriptors if present in table
+  rename_columns_if_present <- function(data) {
+    data %>% dplyr::rename_with(~ dplyr::case_when(
+      . == "region_code" ~ "region",
+      . == "waterbody_identifier" ~ "WBID",
+      . == "fishing_effort_type" ~ "method",
+      . == "fish_collection_type" ~ "method",
+      . == "assess_year" ~ "year",#In Effort table
+      . == "date_assessed_string" ~ "year",#In IndividualFish table
+      . == "sex_code" ~ "sex",
+      . == "maturity_code" ~ "maturity",
+      . == "strain_species_code" ~ "strain",
+      . == "ploidy_code" ~ "ploidy",
+      TRUE ~ .
+    ))
+  }
+
+
+  # Remove rows with NA in WBID. There are currently 39 records.
+  remove_na_wbid <- function(data) {
+    if (!is.null(data) && "WBID" %in% names(data)) {
+      data <- data %>% dplyr::filter(!is.na(WBID))
+    }
+    data
+  }
+
+  # Function to aggregate vwWaterbodyLake
+  aggregate_vwWaterbodyLake <- function(data) {
+    data %>%
+      dplyr::group_by(WBID) %>%
+      dplyr::summarise(across(everything(), mean_or_concat), .groups = 'drop')
+  }
+
+  # Function to determine mean for numeric and concatenate for character
+  mean_or_concat <- function(x) {
+    if (is.numeric(x)) {
+      return(mean(x, na.rm = TRUE))  # Calculate mean for numeric columns
+    } else {
+      return(toString(unique(x)))  # Concatenate unique values for character columns
+    }
+  }
+
   # Load each table excluding specified data types
   out <- lapply(stats::setNames(nm = Tables), function(tb) {
     ret <- tryCatch(
       fetch_data_excluding_types(conn, tb, exclude_types),
       error = function(e) conditionMessage(e))
 
+    # Apply renaming if the data is valid (not NULL or error message)
+    if (!is.null(ret) && is.data.frame(ret)) {
+      ret <- rename_columns_if_present(ret)
+      ret <- remove_na_wbid(ret)  # Remove rows with NA in WBID
+      # If the current table is vwWaterbodyLake, apply aggregation
+      if (tb == "vwWaterbodyLake") {
+        ret <- aggregate_vwWaterbodyLake(ret)
+      }
+    }
+
+
+    # Assign the result to the specified environment if provided
     if (!is.null(envir)) assign(tb, ret, envir = envir)
     ret
   })

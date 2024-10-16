@@ -2,4 +2,7 @@
 
 export(DP2R)
 export(Effort2R)
+export(EffortEst)
+export(Effortmodel)
+export(fac.data)
 importFrom(magrittr,"%>%")

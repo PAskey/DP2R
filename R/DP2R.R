@@ -77,6 +77,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCo
       . == "maturity_code" ~ "maturity",
       . == "strain_species_code" ~ "strain",
       . == "ploidy_code" ~ "ploidy",
+      . == "surface_area_ha" ~ "area_ha",
       TRUE ~ .
     ))
   }

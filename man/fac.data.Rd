@@ -9,11 +9,10 @@ fac.data(data, varlist = list())
 \arguments{
 \item{data}{a data.frame object}
 
-\item{varlist}{a list of variable names and their reference level to factor in the format "name" = "ref level". If no reference level is required then "name" = NULL must be specficied.}
+\item{varlist}{a list of variable names and their reference level to factor in the format "name" = "ref level". If no reference level is required then "name" = NULL.}
 }
 \description{
-A function analyze Effort counts and estimate total annual effort in angler days.
-This function builds on other DP2R functions to gather data and fit an effort model to observed data. THe final step is to predict effort in all the unobserved strata withthe effort model.
+A simple function to take a list of variables within a data set and convert to factors and optionally specified reference levels. This is useful when setting up data for anlaysis of categorical variables in glm or glmers for example.
 }
 \examples{
 

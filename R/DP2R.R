@@ -23,12 +23,12 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCount","vwWaterbodyLake"),
+DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyLake"),
                  exclude_types = c("geography", "varbinary"),
                  envir = parent.frame()) {
 
 
-  if(!exists("conn")){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
+  if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
   conn <- DBI::dbConnect(drv = odbc::odbc(),
                          Driver = 'SQL Server'',
                          server = 'tcp:gofishbc.database.windows.net,1433',
@@ -63,6 +63,8 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCo
     # Execute the query and return the results
     DBI::dbGetQuery(conn, query)
   }
+
+
 
   #Rename some columns to shorter, standard descriptors if present in table
   rename_columns_if_present <- function(data) {

@@ -8,7 +8,7 @@
 #' @keywords SPDT; DataPond
 #' @export
 #' @param data a data.frame object of raw counts that wil be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R functions Effort2R().
-#' @param update a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)
+#' @param update_model a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)
 #' @param model_path path to current effort model to use for predicitons of unobserved time strata.
 #'
 #' @examples
@@ -19,7 +19,7 @@
 #' @importFrom magrittr "%>%"
 
 
-Effortmodel <- function(data = Edata, update = TRUE, model_path  = "data/DP2R_Effort_Model.rda") {
+Effortmodel <- function(data = NULL, update_model = TRUE, model_path  = "data/DP2R_Effort_Model.rda") {
 
   # Ensure the provided data is valid
   if (missing(data) || is.null(data)) {
@@ -28,11 +28,11 @@ Effortmodel <- function(data = Edata, update = TRUE, model_path  = "data/DP2R_Ef
 
     start_t <- Sys.time()
 
-  if(!update){
+  if(!update_model){
     fit = lme4::glmer.nb(OE ~ 0 + daytype + hour + month + (0 + 1 | lakeview_yr) + (0 + 1 | weather_code), data = data, nAGQ=0, control = lme4::glmerControl(optimizer = "nloptwrap"), na.action = "na.pass")
   }else{
     load(file = model_path)
-    fit = lme4::update(fit, data = data)
+    fit = stats::update(fit, data = data)
     }
 
   end_t <- Sys.time()

@@ -5,7 +5,7 @@
 \title{DP2R}
 \usage{
 DP2R(
-  Tables = c("vwIndividualFish", "vwFishCollection", "vwCollectCount", "vwWaterbodyLake"),
+  Tables = c("vwIndividualFish", "vwFishCollection", "vwWaterbodyLake"),
   exclude_types = c("geography", "varbinary"),
   envir = parent.frame()
 )

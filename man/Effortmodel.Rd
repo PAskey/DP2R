@@ -5,15 +5,15 @@
 \title{Effortmodel}
 \usage{
 Effortmodel(
-  data = Edata,
-  update = TRUE,
+  data = NULL,
+  update_model = TRUE,
   model_path = "data/DP2R_Effort_Model.rda"
 )
 }
 \arguments{
 \item{data}{a data.frame object of raw counts that wil be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R functions Effort2R().}
 
-\item{update}{a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)}
+\item{update_model}{a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)}
 
 \item{model_path}{path to current effort model to use for predicitons of unobserved time strata.}
 }

@@ -5,13 +5,13 @@
 \title{EffortEst}
 \usage{
 EffortEst(
-  data = Edata,
+  data = NULL,
   update.model = FALSE,
   model_path = "data/DP2R_Effort_Model.rda"
 )
 }
 \arguments{
-\item{data}{a data.frame object of raw counts that wil be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().}
+\item{data}{a data.frame object of raw counts that will be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().}
 
 \item{update.model}{a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)}
 
@@ -23,7 +23,6 @@ This function builds on other DP2R functions to gather data and fit an effort mo
 }
 \examples{
 
-DP2R::Effort2R()
 DP2R::EffortEst()
 
 }

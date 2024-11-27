@@ -20,7 +20,30 @@
 "DayTypes"
 
 # ----------------------------------------------------------------------
+#' Pred_vars Dataset
+#'
+#' A data frame summarizing frequency of variable categories for efficient model predictions used in the effort analysis.
+#'
+#' This dataset categorizes daytypes, weather, hour of unobserved counts to extrapolate effort estimates to a full season.Used within EffortEst function.
+#'
+#' @format A data frame with 6 columns:
+#' \describe{
+#'   \item{year}{year in numeric format.}
+#'   \item{month}{month in numeric format.}
+#'   \item{daytype}{A factor with levels: "WD", "WE", "LWE".}
+#'   \item{ndays}{An integer describing the number of days for that daytype category in the given month}
+#'   \item{hour}{hour in character format}
+#'   \item{weather_code}{A character string describing the weather catgory as POOR, FAIR or GOOD.}
+#' }
+#' @usage data(Pred_vars)
+#' @source Generated internally for the DP2R package.
+#'
+#' @examples
+#' data(Pred_vars)
+#' head(Pred_vars)
+"Pred_vars"
 
+# ----------------------------------------------------------------------
 #' DP2R_Effort_Model
 #'
 #' A `glmer` model object for predicting effort based on day types and other variables.

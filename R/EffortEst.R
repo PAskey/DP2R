@@ -6,51 +6,46 @@
 #' @name EffortEst
 #' @keywords SPDT; DataPond
 #' @export
-#' @param data a data.frame object of raw counts that wil be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().
+#' @param data a data.frame object of raw counts that will be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().
 #' @param update.model a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)
 #' @param model_path path to current effort model to use for predicitons of unobserved time strata.
 #'
 #' @examples
 #'
-#' DP2R::Effort2R()
 #' DP2R::EffortEst()
 #'
 #' @importFrom magrittr "%>%"
 
 
-EffortEst <- function(data = Edata, update.model = FALSE, model_path = "data/DP2R_Effort_Model.rda") {
+EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R_Effort_Model.rda") {
 
-  ### 1. Load or Update the Model
-  if (update.model) {
-    DP2R::Effortmodel()  # Load the updated model if required
-  } else {
-    load(file = model_path)  # Load the model from the specified path
+  ### 1. Load and/or Update the data and statistical model
+
+
+  if (missing(data) || is.null(data)) {
+    DP2R::Effort2R()
   }
 
-  ### 2. Create a Prediction Table for Months and Day Types (May 1st to Oct 31st)
-  Pred_table <- DP2R::DayTypes %>%
-    dplyr::mutate(
-      year = lubridate::year(date),  # Extract the year
-      month = lubridate::month(date)  # Extract the month
-    ) %>%
-    dplyr::filter(month %in% c(5:10)) %>%  # Filter by relevant months in Edata
-    dplyr::group_by(year, month, daytype) %>%  # Group by fixed effect predictors
-    dplyr::summarize(
-      ndays = dplyr::n_distinct(date),  # Unique days in each group
-      hour = "12",  # Set reference hour
-      weather_code = "FAIR",  # Default weather code
-      .groups = "drop"  # Avoids unnecessary ungrouping
-    ) %>%
-    droplevels()
+
+  if (update.model) {
+    DP2R::Effortmodel(data = Edata)  # Update the model with new data if required
+  } else {
+    load(file = model_path)  # Load the model from the specified path if not
+  }
+
+  ### 2. Load a Prediction Table for Months and Day Types and match to the data set being predicted(e.g. open water is usually May 1st to Oct 31st)
+ data(Pred_vars)
+ Pred_vars = Pred_vars%>%dplyr::filter(year %in% data$year, month %in% as.numeric(as.character(data$month)))
 
   ### 3. Match Prediction Table to Model’s Reference Levels
-  Pred_table <- DP2R::fac.data(
-    Pred_table,
+  Pred_vars <- DP2R::fac.data(
+    Pred_vars,
     varlist = list(
       "year" = NULL,
-      "month" = levels(fit@frame$month)[1],  # Use model’s first month level
+      "month" = levels(data$month)[1],  # Use model’s first month level (different for ice and open water)
       "daytype" = "WE",  # Weekend as default reference
-      "hour" = "12"  # Reference hour
+      "hour" = "12",  # Reference hour
+      "weather_code" = "UNK"
     )
   )
 
@@ -61,9 +56,9 @@ EffortEst <- function(data = Edata, update.model = FALSE, model_path = "data/DP2
   # Adding exp(0) ensures reference hour (12 PM) is included
 
   ### 5. Summarize Effort by Lake
-  Pred.lakes <- Edata %>%
+  Pred_lakes <- data %>%
     dplyr::group_by(
-      region, WBID, gazetted_name, area_ha, view_location_name,
+      region, WBID, gazetted_name, view_location_name,
       year, lakeview_yr, method
     ) %>%
     dplyr::summarize(
@@ -75,12 +70,12 @@ EffortEst <- function(data = Edata, update.model = FALSE, model_path = "data/DP2
       .groups = "drop"  # Avoids ungrouping later
     )
 
-  ### 6. Generate Predictions for Each Lake
-  D <- unique(Pred.lakes$WBID) %>%
+  ### 6. Generate Prediction category levels for Each Lake
+  D <- unique(Pred_lakes$WBID) %>%
     purrr::map_df(function(wbid) {
       # Filter lake data and relevant prediction table rows
-      L <- dplyr::filter(Pred.lakes, WBID == wbid)
-      S <- dplyr::filter(Pred_table, year %in% L$year)
+      L <- dplyr::filter(Pred_lakes, WBID == wbid)
+      S <- dplyr::filter(Pred_vars, year %in% L$year)
       merge(S, L, all = TRUE)  # Merge prediction table with lake data
     })
 
@@ -106,7 +101,8 @@ EffortEst <- function(data = Edata, update.model = FALSE, model_path = "data/DP2
 
   # Final effort calculations
   sum.pred <- Pred.summary %>%
-    dplyr::left_join(Pred.lakes, by = "lakeview_yr") %>%
+    dplyr::left_join(Pred_lakes, by = "lakeview_yr") %>%
+    dplyr::left_join(.,Lakes[,c("WBID","area_ha")], by = "WBID")%>%
 
     # Step 1: Calculate predicted boat and shore hours
     dplyr::mutate(

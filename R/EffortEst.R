@@ -7,6 +7,7 @@
 #' @keywords SPDT; DataPond
 #' @export
 #' @param data a data.frame object of raw counts that will be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().
+#' @param month_span a vector of the month values which the total effort estimate is calculated. Default is c(5:10), in which case the annual angler days are the sum over May through October. You cannot use a month span outside of the range of your data. Data may be different for ice fishing or open water seasons.
 #' @param update.model a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)
 #' @param model_path path to current effort model to use for predicitons of unobserved time strata.
 #'
@@ -17,18 +18,20 @@
 #' @importFrom magrittr "%>%"
 
 
-EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R_Effort_Model.rda") {
+EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, model_path = "data/DP2R_Effort_Model.rda", data_save = TRUE) {
 
   ### 1. Load and/or Update the data and statistical model
 
 
   if (missing(data) || is.null(data)) {
     DP2R::Effort2R()
+    data = Edata
   }
 
+  data = data[data$month%in%month_span,]%>%droplevels()
 
   if (update.model) {
-    DP2R::Effortmodel(data = Edata)  # Update the model with new data if required
+    DP2R::Effortmodel(data = data)  # Update the model with new data if required
   } else {
     load(file = model_path)  # Load the model from the specified path if not
   }
@@ -63,10 +66,10 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
     ) %>%
     dplyr::summarize(
       N = dplyr::n(),  # Number of observations
-      sum_spv_obs = if (all(is.na(num_spv))) NA else sum(num_spv, na.rm = TRUE),
-      sum_boats_obs = if (all(is.na(num_boat))) NA else sum(num_boat, na.rm = TRUE),
-      sum_shore_obs = if (all(is.na(num_shore_ice))) NA else sum(num_shore_ice, na.rm = TRUE),
-      sum_OE = sum(OE),
+      spv_obs = if (all(is.na(num_spv))) NA else sum(num_spv, na.rm = TRUE),
+      boats_obs = if (all(is.na(num_boat))) NA else sum(num_boat, na.rm = TRUE),
+      shore_obs = if (all(is.na(num_shore_ice))) NA else sum(num_shore_ice, na.rm = TRUE),
+      OE = sum(OE),
       .groups = "drop"  # Avoids ungrouping later
     )
 
@@ -74,7 +77,7 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
   D <- unique(Pred_lakes$WBID) %>%
     purrr::map_df(function(wbid) {
       # Filter lake data and relevant prediction table rows
-      L <- dplyr::filter(Pred_lakes, WBID == wbid)
+      L <- dplyr::filter(Pred_lakes[,c('WBID','year','lakeview_yr')], WBID == wbid)
       S <- dplyr::filter(Pred_vars, year %in% L$year)
       merge(S, L, all = TRUE)  # Merge prediction table with lake data
     })
@@ -84,8 +87,8 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
     dplyr::mutate(
       hour = factor(hour, levels = levels(fit@frame$hour)),
       weather_code = factor(weather_code, levels = levels(fit@frame$weather_code)),
-      preds = predict(fit, newdata = D, type = "response"),  # Generate predictions
-      predx = preds * Day_expand * ndays  # Expand predictions to full-day effort
+      #preds = predict(fit, newdata = D, type = "response"),  # Generate predictions
+      predx = predict(fit, newdata = D, type = "response") * Day_expand * ndays  # Generate predictions, Expand predictions to full-day effort
     )
 
 
@@ -106,12 +109,12 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
 
     # Step 1: Calculate predicted boat and shore hours
     dplyr::mutate(
-      Pred_B = ifelse(sum_OE == 0,
-                      0,round(Pred_E * ((sum_OE - dplyr::coalesce(sum_shore_obs, 0)) / sum_OE))),
-      Pred_S = ifelse(sum_OE == 0,
-                      0,round(Pred_E * (dplyr::coalesce(sum_shore_obs, 0) / sum_OE))),
-      Boat_hrs = round(Pred_B),
-      Shore_hrs = round(Pred_S)
+      Pred_B = ifelse(OE == 0,
+                      0,round(Pred_E * ((OE - dplyr::coalesce(shore_obs, 0)) / OE))),
+      Pred_S = ifelse(OE == 0,
+                      0,round(Pred_E * (dplyr::coalesce(shore_obs, 0) / OE))),
+      Pred_B = round(Pred_B),
+      Pred_S = round(Pred_S)
     ) %>%
 
     # Step 2: Calculate angler days for boat and shore
@@ -120,12 +123,12 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
         Pred_B * Angs_p_boat / Hrs_p_day +
           Pred_S / Hrs_p_day_shore
       ),
-      Boat_angler_days = round(Boat_hrs * Angs_p_boat / Hrs_p_day),
+      Boat_angler_days = round(Pred_B * Angs_p_boat / Hrs_p_day),
 
       # Ensure Shore_angler_days is 0 when sum_shore_obs is 0, otherwise calculate normally
       Shore_angler_days = dplyr::case_when(
-        sum_shore_obs == 0 ~ 0,
-        !is.na(sum_shore_obs) ~ round(Shore_hrs / Hrs_p_day_shore),
+        shore_obs == 0 ~ 0,
+        !is.na(shore_obs) ~ round(Pred_S / Hrs_p_day_shore),
         TRUE ~ NA_real_
       )
     ) %>%
@@ -133,7 +136,7 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
     # Step 3: Handle edge cases with infinite or NaN values
   #  dplyr::mutate(
   #    Shore_angler_days = dplyr::if_else(
-  #      is.infinite(Shore_hrs) & sum_boats_obs > 0,
+  #      is.infinite(Pred_S) & sum_boats_obs > 0,
   #      (dplyr::coalesce(sum_shore_obs, 0) / sum_boats_obs) * Boat_angler_days,
   #      Shore_angler_days
   #    ),
@@ -157,7 +160,7 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
     # Step 5: Replace 0 angler days with NA if observations exist
     dplyr::mutate(
       Angler_days = dplyr::if_else(
-        Angler_days == 0 & (dplyr::coalesce(sum_boats_obs, 0) > 0 | dplyr::coalesce(sum_shore_obs, 0) > 0),
+        Angler_days == 0 & (dplyr::coalesce(boats_obs, 0) > 0 | dplyr::coalesce(shore_obs, 0) > 0),
         NA_real_,
         Angler_days
       ),
@@ -173,7 +176,12 @@ EffortEst <- function(data = NULL, update.model = FALSE, model_path = "data/DP2R
 
 Lake_sum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
 
-Shinydata <<- sum.pred
-lakesum <<- Lake_sum
+#Shinydata <<- sum.pred
+#lakesum <<- Lake_sum
+
+if(data_save){
+save(sum.pred, file = "data/shinydata.rda")
+save(Lake_sum, file = "data/lakesum.rda")
+}
 
 }

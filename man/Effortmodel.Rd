@@ -7,7 +7,8 @@
 Effortmodel(
   data = NULL,
   update_model = TRUE,
-  model_path = "data/DP2R_Effort_Model.rda"
+  model_path = "data/DP2R_Effort_Model.rda",
+  add_camX = TRUE
 )
 }
 \arguments{
@@ -15,7 +16,7 @@ Effortmodel(
 
 \item{update_model}{a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)}
 
-\item{model_path}{path to current effort model to use for predicitons of unobserved time strata.}
+\item{model_path}{path to current effort model to use for predictions of unobserved time strata.}
 }
 \description{
 A function analyze Effort counts and estimate total annual effort in angler days.

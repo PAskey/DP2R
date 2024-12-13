@@ -32,7 +32,7 @@ fac.data <- function(data, varlist = list()) {
         ref_level <- varlist[[dplyr::cur_column()]]  # Extract reference level if provided
         fct <- factor(.)
         if (!is.null(ref_level)) fct <- stats::relevel(fct, ref_level)  # Set reference level if given
-        fct
+        fct <- droplevels(fct)
       }
     ))
 

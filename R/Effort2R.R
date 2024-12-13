@@ -34,7 +34,7 @@ Effort2R <- function() {
                          pwd = pwd")}
 
   #In future bring in vwEffort as well
-  DP2R::DP2R(Tables = c("vwWaterbodyLake"))
+  #DP2R::DP2R(Tables = c("vwWaterbodyLake"))
 
   # Currently Edata_dt is already a data.table object from EffortCLean() below
   #In future, once cleaning section can be removed, but add following:
@@ -95,18 +95,35 @@ Effort2R <- function() {
   # Update weather_code column in-place, replacing NA values with "UNK"
   Edata_dt[, weather_code := data.table::fifelse(is.na(weather_code), "UNK", weather_code)]
 
+  ###THis section reduces multi-counts per hour to the first count. A few cases have numerous counts from the same hour, which  would heavily weight that hour in the model fitting.
 
-  #Use vwWAterbody lake to add region and surface area
- # vwWaterbodyLake_dt <- data.table::as.data.table(vwWaterbodyLake[])
+  # Define columns to group by
+  group_cols <- c("region", "WBID", "gazetted_name", "method", "view_location_name", "date", "year", "month", "hour")
 
-  #Edata_dt <- merge(vwWaterbodyLake_dt[,c("region","WBID","gazetted_name","area_ha")], Edata_dt, by = c("WBID","gazetted_name"), all.y = TRUE)
+  # Define the desired column order after grouping columns
+  desired_order <- c(
+    group_cols,
+    "ice_cover_code", "assessed_dt", "weather_code", "num_shore_ice", "num_spv",
+    "num_boat", "num_ice_tent", "percent_visibility", "percent_lake_seen",
+    "comment", "assess_event_id", "assess_event_name", "fishing_effort_id"
+  )
 
-  #Filter relevant lakes (only those present in Edata) using data.table
-  #Lakes <- vwWaterbodyLake_dt[WBID %in% Edata_dt$WBID]
+  # Order the data and select the first row for each group
+  Edata_dt <- Edata_dt[order(region, WBID, gazetted_name, method, view_location_name, date, assessed_dt, year, month, hour)
+  ][, .SD[1], by = group_cols]
+
+  # Reorder the columns
+  Edata_dt <- data.table::setcolorder(Edata_dt, desired_order)
+
+
 
   # Convert back to data.frame if necessary
   Edata <- as.data.frame(Edata_dt)
-  Lakes <- vwWaterbodyLake[vwWaterbodyLake$WBID %in% Edata_dt$WBID,]
+  #Lakes <- vwWaterbodyLake[vwWaterbodyLake$WBID %in% Edata_dt$WBID,]
+
+  ##Add in camera expansion factor lakeview_yrs
+  Edata <- Cam_xdata(Edata)
+
 
   ###################################################################################
   #Final steps as data frame to create factors for analyses and separate ice fishing and open water data.
@@ -127,14 +144,15 @@ Effort2R <- function() {
 
   Edata = Edata%>%DP2R::fac.data(.,varlist = list("year" = NULL, "month" = "5", "hour" = "12", "daytype" = "WE", "weather_code" = "UNK", "lakeview_yr" = NULL, "lake_hr" = NULL))%>%droplevels()
 
-  Edata$month = droplevels(Edata$month)
-
   Icedata = DP2R::fac.data(Icedata, varlist = list("year" = NULL, "month" = "1", "hour" = "12", "daytype" = "WE", "weather_code" = "UNK", "lakeview_yr" = NULL, "lake_hr" = NULL))%>%droplevels()
 
 
   Edata <<- Edata
   Icedata <<- Icedata
-  Lakes <<-Lakes
+
+  keepers = c("Edata","Icedata", "Lakes")
+  rm(list = setdiff(ls(), keepers))
+  gc()
 
 
 }

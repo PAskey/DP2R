@@ -6,12 +6,16 @@
 \usage{
 EffortEst(
   data = NULL,
+  month_span = c(5:10),
   update.model = FALSE,
-  model_path = "data/DP2R_Effort_Model.rda"
+  model_path = "data/DP2R_Effort_Model.rda",
+  data_save = TRUE
 )
 }
 \arguments{
 \item{data}{a data.frame object of raw counts that will be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().}
+
+\item{month_span}{a vector of the month values which the total effort estimate is calculated. Default is c(5:10), in which case the annual angler days are the sum over May through October. You cannot use a month span outside of the range of your data. Data may be different for ice fishing or open water seasons.}
 
 \item{update.model}{a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)}
 

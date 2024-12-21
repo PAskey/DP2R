@@ -9,7 +9,7 @@
 #' @param data a data.frame object of raw counts that will be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R function Effort2R().
 #' @param month_span a vector of the month values which the total effort estimate is calculated. Default is c(5:10), in which case the annual angler days are the sum over May through October. You cannot use a month span outside of the range of your data. Data may be different for ice fishing or open water seasons.
 #' @param update.model a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)
-#' @param model_path path to current effort model to use for predicitons of unobserved time strata.
+#' @param model_path path to current effort model to use for predictions of unobserved time strata. Two models exist, one for open water season: "data/DP2R_Effort_Model.qs2", and one for ice fishing "data/DP2R_Ice_Model.qs2"
 #'
 #' @examples
 #'
@@ -18,7 +18,7 @@
 #' @importFrom magrittr "%>%"
 
 
-EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, model_path = "data/DP2R_Effort_Model.rda", data_save = TRUE) {
+EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, model_path = "data/DP2R_Effort_Model.qs2", data_save = TRUE) {
 
   ### 1. Load and/or Update the data and statistical model
 
@@ -27,13 +27,13 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     DP2R::Effort2R()
     data = Edata
   }
-
+  Lakes <- DP2R::DP2R(Tables = "vwWaterbodyLake")$vwWaterbodyLake%>%dplyr::filter(WBID%in%data$WBID)
   data = data[data$month%in%month_span,]%>%droplevels()
 
   if (update.model) {
     DP2R::Effortmodel(data = data)  # Update the model with new data if required
   } else {
-    load(file = model_path)  # Load the model from the specified path if not
+    fit = qs2::qs_read(model_path)  # Load the model from the specified path if not
   }
 
   ### 2. Load a Prediction Table for Months and Day Types and match to the data set being predicted(e.g. open water is usually May 1st to Oct 31st)
@@ -96,88 +96,104 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     dplyr::group_by(lakeview_yr) %>%
     dplyr::summarize(Pred_E = round(sum(predx)), .groups = "drop")
 
-  # Define constants for angler-day calculations
-  #Should have different number for when spv were counted or not.
-  Angs_p_boat <- 1.83
-  Hrs_p_day <- 3.15
-  Hrs_p_day_shore <- 2.39
 
   # Final effort calculations
   sum.pred <- Pred.summary %>%
     dplyr::left_join(Pred_lakes, by = "lakeview_yr") %>%
     dplyr::left_join(.,Lakes[,c("WBID","area_ha")], by = "WBID")%>%
+    dplyr::mutate(area_ha = round(area_ha,1))
 
+  # Define constants for angler-day calculations
+  #Should update to have different number for when spv were counted or not. Lower avg if spv not separated
+  calculate_angler_days <- function(df,
+                                    Angs_p_boat = 1.83,
+                                    Hrs_p_day = 3.15,
+                                    Hrs_p_day_shore = 2.39
+                                    ) {
     # Step 1: Calculate predicted boat and shore hours
-    dplyr::mutate(
-      Pred_B = ifelse(OE == 0,
-                      0,round(Pred_E * ((OE - dplyr::coalesce(shore_obs, 0)) / OE))),
-      Pred_S = ifelse(OE == 0,
-                      0,round(Pred_E * (dplyr::coalesce(shore_obs, 0) / OE))),
-      Pred_B = round(Pred_B),
-      Pred_S = round(Pred_S)
-    ) %>%
+    Pred_spv <- ifelse(df$OE == 0, 0, df$Pred_E * ((coalesce(df$spv_obs, 0)) / df$OE))
+    Pred_B <- ifelse(df$OE == 0, 0, round(df$Pred_E * ((coalesce(df$boats_obs, 0)) / df$OE)))
+    Pred_S <- ifelse(df$OE == 0, 0, round(df$Pred_E * (coalesce(df$shore_obs, 0) / df$OE)))
 
     # Step 2: Calculate angler days for boat and shore
-    dplyr::mutate(
-      lakeview_angler_days = round(
-        Pred_B * Angs_p_boat / Hrs_p_day +
-          Pred_S / Hrs_p_day_shore
-      ),
-      Boat_angler_days = round(Pred_B * Angs_p_boat / Hrs_p_day),
+    spv_AD <- round(Pred_spv / Hrs_p_day)
 
-      # Ensure Shore_angler_days is 0 when sum_shore_obs is 0, otherwise calculate normally
-      Shore_angler_days = dplyr::case_when(
-        shore_obs == 0 ~ 0,
-        !is.na(shore_obs) ~ round(Pred_S / Hrs_p_day_shore),
-        TRUE ~ NA_real_
-      )
-    ) %>%
+    Boat_AD <- round(Pred_B * Angs_p_boat / Hrs_p_day)
 
-    # Step 3: Handle edge cases with infinite or NaN values
-  #  dplyr::mutate(
-  #    Shore_angler_days = dplyr::if_else(
-  #      is.infinite(Pred_S) & sum_boats_obs > 0,
-  #      (dplyr::coalesce(sum_shore_obs, 0) / sum_boats_obs) * Boat_angler_days,
-  #      Shore_angler_days
-  #    ),
-  #    Boat_angler_days = dplyr::na_if(
-  #      replace(Boat_angler_days, is.infinite(Boat_angler_days) | is.nan(Boat_angler_days), NA),
-  #      0
-  #    ),
-  #    Shore_angler_days = dplyr::na_if(
-  #      replace(Shore_angler_days, is.infinite(Shore_angler_days) | is.nan(Shore_angler_days), NA),
-  #      0
-  #    )
-  #  ) %>%
+    Shore_AD <- ifelse(df$shore_obs == 0, 0, round(Pred_S / Hrs_p_day_shore))
 
-    # Step 4: Compute total angler days
-    dplyr::rowwise() %>%
-    dplyr::mutate(
-      Angler_days = sum(c(Shore_angler_days, Boat_angler_days), na.rm = TRUE)
-    ) %>%
-    dplyr::ungroup() %>%
+    # Step 3: Compute total angler days
+    Angler_days <- rowSums(cbind(Shore_AD, spv_AD, Boat_AD), na.rm = TRUE)
 
-    # Step 5: Replace 0 angler days with NA if observations exist
-    dplyr::mutate(
-      Angler_days = dplyr::if_else(
-        Angler_days == 0 & (dplyr::coalesce(boats_obs, 0) > 0 | dplyr::coalesce(shore_obs, 0) > 0),
-        NA_real_,
-        Angler_days
-      ),
-      Angler_days_p_ha = dplyr::if_else(area_ha>0, round(Angler_days/area_ha,1), NA_real_)
+    # Step 4: Replace 0 angler days with NA if observations exist
+    Angler_days <- ifelse(Angler_days == 0 & (coalesce(df$boats_obs, 0) > 0 | coalesce(df$shore_obs, 0) > 0),
+                          NA, Angler_days)
+
+    Angler_days_p_ha <- ifelse(df$area_ha > 0, round(Angler_days / df$area_ha, 1), NA)
+
+    # Return the relevant columns only
+    calcs <- data.frame(
+      spv_AD,
+      Boat_AD,
+      Shore_AD,
+      Angler_days,
+      Angler_days_p_ha
     )
+    result = cbind(df,calcs)
+    return(result)
+  }
+
+  sum.pred = calculate_angler_days(sum.pred)
+
+
+  #Create a table of camera expansion factors when verification counts have been conducted
+  #Step 1. Pull all of the lakeview_yrs that were crated specific for verification using the Cam_xdata_dt.R function within Effort2R()
+  Xcam<-sum.pred%>%dplyr::filter(grepl('AIR|CAM|GR', lakeview_yr))%>%
+
+    #Step 2. COpare the effort estimates between camera view and full lake using same sample days/hours
+    dplyr::select(c(WBID:N,Angler_days))%>%
+    tidyr::pivot_wider(names_from = method, values_from = c(Angler_days))%>%
+    dplyr::rowwise()%>%
+    dplyr::mutate(Exp = max(1,max(AIR, GRD, na.rm = TRUE)/CAM))%>%
+
+    #Step 3. When more than one year or verifcation method is used for same camera view take a weighted mean
+    dplyr::group_by(WBID, view_location_name)%>%
+    dplyr::summarize(Exp_N = sum(N), Exp = round(weighted.mean(Exp, N),2))%>%
+    dplyr::ungroup()
+
+##OK, now we can adjust estimates from cameras that have verification counts
+  sum.pred = dplyr::left_join(sum.pred,Xcam, by = c("WBID","view_location_name"))%>%
+    #and remove data that is just for Exp estimation
+    dplyr::filter(!grepl('AIR|CAM|GR', lakeview_yr))
+
+##Adjust camera data when verification available
+  sum.pred <- sum.pred %>%
+    mutate(
+      spv_AD = ifelse(method == "CAM", round(spv_AD * Exp,1), spv_AD),
+      Boat_AD = ifelse(method == "CAM", round(Boat_AD * Exp,1), Boat_AD),
+      Shore_AD = ifelse(method == "CAM", round(Shore_AD * Exp,1), Shore_AD),
+      Angler_days = ifelse(method == "CAM", round(Angler_days * Exp,1), Angler_days),
+      Angler_days_p_ha = ifelse(method == "CAM", round(Angler_days_p_ha * Exp,1), Angler_days_p_ha)
+    )
+
+  # Define column order
+  cols <- c("region", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
+
+  sum.pred = sum.pred%>%
+    dplyr::select(cols)%>%
+    dplyr::rename(CAM_Exp=Exp)
 
   #Lake by lake summary of effort data
   Lake_sum <- sum.pred %>%
     dplyr::group_by(WBID, gazetted_name) %>%
-    dplyr::summarise(N_years = length(unique(year)), Methods = paste0(unique(method),collapse = ","), mean_AD = round(mean(Angler_days, na.rm = TRUE),1), mean_lakeview= round(mean(lakeview_angler_days, na.rm = TRUE),1), marker_size = max(mean_AD,mean_lakeview, na.rm = TRUE),
+    dplyr::summarise(N_years = length(unique(year)), Methods = paste0(unique(method),collapse = ","), mean_AD = round(mean(Angler_days, na.rm = TRUE),1), marker_size = max(mean_AD,1, na.rm = TRUE),
                      .groups = "drop" )%>%
     dplyr::mutate(AD_percentile = 100*round(dplyr::min_rank(mean_AD)/dplyr::n(),2))
 
-Lake_sum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
 
-#Shinydata <<- sum.pred
-#lakesum <<- Lake_sum
+
+  Lake_sum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
+
 
 if(data_save){
 save(sum.pred, file = "data/shinydata.rda")

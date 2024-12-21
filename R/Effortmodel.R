@@ -8,8 +8,8 @@
 #' @keywords SPDT; DataPond
 #' @export
 #' @param data a data.frame object of raw counts that wil be used to convert to annual effort estimates. Default value is Edata, which is generated form the DP2R functions Effort2R().
-#' @param update_model a TRUE/FALSE to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (FALSE) completely refit the model form scratch (takes about 20min to run.)
-#' @param model_path path to current effort model to use for predictions of unobserved time strata.
+#' @param update_or_fit a character string "update" or "fit" to indicate whether to update the current effort model with new data (i.e. model fitting process builds on old model by fitting new data points and takes about 5min), or (fit") completely refit the model form scratch (takes about 20min to run.)
+#' @param model_path path to current effort model to use for predictions of unobserved time strata. Two models exist, one for open water season: "data/DP2R_Effort_Model.qs2", and one for ice fishing "data/DP2R_Ice_Model.qs2"
 #'
 #' @examples
 #'
@@ -19,7 +19,7 @@
 #' @importFrom magrittr "%>%"
 
 
-Effortmodel <- function(data = NULL, update_model = TRUE, model_path  = "data/DP2R_Effort_Model.rda", add_camX = TRUE) {
+Effortmodel <- function(data = NULL, update_or_fit = "update", model_path  = "data/DP2R_Effort_Model.qs2", add_camX = TRUE) {
 
   # Ensure the provided data is valid
   if (missing(data) || is.null(data)) {
@@ -28,7 +28,7 @@ Effortmodel <- function(data = NULL, update_model = TRUE, model_path  = "data/DP
 
     start_t <- Sys.time()
 
-  if(!update_model){
+  if(update_or_fit == "fit"){
     fit = lme4::glmer.nb(OE ~ 0 + daytype + hour + month + (0 + 1 | lakeview_yr) + (0 + 1 | weather_code), data = data, nAGQ=0, control = lme4::glmerControl(optimizer = "nloptwrap"), na.action = "na.pass")
   }else{
     load(file = model_path)
@@ -37,6 +37,7 @@ Effortmodel <- function(data = NULL, update_model = TRUE, model_path  = "data/DP
 
   end_t <- Sys.time()
   run_t <- end_t-start_t
-  save(fit, file = model_path)#Save updated copy of model to update next time new data available
+  #save(fit, file = model_path)#Save updated copy of model to update next time new data available
   message("Model run time: ", run_t)
+  qs2::qs_save(fit,model_path)
 }

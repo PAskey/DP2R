@@ -8,7 +8,7 @@ EffortEst(
   data = NULL,
   month_span = c(5:10),
   update.model = FALSE,
-  model_path = "data/DP2R_Effort_Model.rda",
+  model_path = "data/DP2R_Effort_Model.qs2",
   data_save = TRUE
 )
 }
@@ -19,7 +19,7 @@ EffortEst(
 
 \item{update.model}{a TRUE/FALSE to indicate whether to update the current effort model with new data or just load the current effort model (default)}
 
-\item{model_path}{path to current effort model to use for predicitons of unobserved time strata.}
+\item{model_path}{path to current effort model to use for predictions of unobserved time strata. Two models exist, one for open water season: "data/DP2R_Effort_Model.qs2", and one for ice fishing "data/DP2R_Ice_Model.qs2"}
 }
 \description{
 A function analyze Effort counts and estimate total annual effort in angler days.

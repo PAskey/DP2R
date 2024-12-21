@@ -16,42 +16,55 @@
 
 Cam_xdata <- function(data = Edata) {
 
-# find observations where counts by different methods were done in the same hour on a lake and can be contrasted
-  Contrasts <- data %>%
-    dplyr::group_by(WBID, date, lake_hr, method) %>%
-    dplyr::summarize(mucnt = mean(OE, na.rm = TRUE), .groups = "drop") %>%
-    tidyr::spread(method, mucnt) %>%
-    dplyr::filter(!(is.na(AIR) & is.na(GRD))) %>%  # Keep rows where at least one of AIR or GRD is not NA
-    dplyr::filter(!is.na(CAM)) %>%                 # Ensure CAM is not NA
-    dplyr::filter((is.na(AIR) | is.na(GRD)) | (AIR == GRD)) %>%  # If AIR and GRD are both present, then they must be equal
-    dplyr::pull(lake_hr)#%>%
-    #droplevels()
+#CHatgpt helped with th esituation where more than one camera, so need to separate by lakeview_yr to compare to other methods.
+  # Summarize AIR and GRD separately (ignoring lakeview_yr)
+  air_grd_summary <- data %>%
+    dplyr::filter(method %in% c("AIR", "GRD")) %>%
+    dplyr::select(WBID, date, lake_hr, method, OE) %>%
+    #dplyr::summarize(mucnt = mean(OE, na.rm = TRUE), .groups = "drop") %>%
+    tidyr::pivot_wider(names_from = method, values_from = OE)
 
-  #Take a subset of data that relates to those lake-date-hours, and collapse to mean for multi-counts per hour for same method and view
-  ExpData = data%>%dplyr::filter(lake_hr %in% Contrasts)%>%
-    dplyr::group_by(WBID, year, method, lakeview_yr, view_location_name, date, lake_hr)%>%
-    dplyr::summarize(OE = round(mean(OE, na.rm = T),1))#%>%
-    #dplyr::group_by(WBID, year, view_location_name)%>%
-    #summarize()
+  # Summarize CAM (keeping lakeview_yr for camera differentiation)
+  cam_summary <- data %>%
+    dplyr::filter(method == "CAM") %>%
+    dplyr::select(WBID, view_location_name, year, lakeview_yr, date, lake_hr, OE)%>%
+    rename(CAM = OE)
+    #dplyr::summarize(CAM = mean(OE, na.rm = TRUE), .groups = "drop")#Should be just one observation anyways
 
-  lklist <- ExpData%>%
-    dplyr::group_by(WBID, year, method, lakeview_yr, view_location_name)%>%
+  # Join CAM counts with AIR and GRD summaries
+  contrasts <- cam_summary %>%
+    dplyr::left_join(air_grd_summary, by = c("WBID", "date", "lake_hr")) %>%
+
+    # Filter to keep rows where CAM is present
+    dplyr::filter(!is.na(CAM)) %>%
+
+    # Ensure at least one of AIR or GRD is not NA
+    dplyr::filter(!(is.na(AIR) & is.na(GRD))) %>%
+
+    # Ensure AIR and GRD match if both are present
+    dplyr::filter((is.na(AIR) | is.na(GRD)) | (AIR == GRD)) #%>%
+
+    # Pull lake_hr values
+    #dplyr::pull(lake_hr)
+
+###MAYBE CHANGE ABOVE TO PULL LAKEVIEW AND LAKE_HR COMBO?
+  ##Might be able to verify sample sizes in the code black above.
+  lklist <- contrasts%>%
+    dplyr::group_by(WBID, year, lakeview_yr, view_location_name)%>%
     dplyr::summarize(ndays = length(unique(date)),
                      n = dplyr::n(),
-                     sumcnts = sum(OE),
-                     nyrs = length(unique(lubridate::year(date))))%>%
-    dplyr::filter(!is.na(view_location_name),ndays>=12|sumcnts>=6)%>%
+                     sumcnts = sum(CAM))%>%
+    dplyr::filter(!is.na(view_location_name),ndays>=12&sumcnts>=5)%>%
     dplyr::ungroup()%>%
     dplyr::select(WBID, year)%>%
     dplyr::distinct()
-
 
   #REduce to lake-year combos that meet sample size requirements
   ExpData = dplyr::inner_join(lklist, data, by = c('WBID','year'))
 
   # Filter only necessary columns first to reduce size
   ExpData <- ExpData %>%
-    dplyr::filter(lake_hr %in% Contrasts) #%>%
+    dplyr::filter(lake_hr %in% contrasts$lake_hr) #%>%
 
 
   # Ensure the final data frame matches the original column order

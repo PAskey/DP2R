@@ -23,9 +23,9 @@ EffortClean <- function() {
   #Edata = merge(FishingEffort,AssessEvent[,c("assess_event_id", "assess_event_name","locale_id")], by = c("assess_event_id"))%>%
  #         merge(Lakes[,c("region","WBID", "gazetted_name","locale_id")], by = "locale_id")
 
-  DP2R::DP2R(Tables = c("vwWaterbodyLake", "vwEffort"))
-  Edata = vwEffort
-  Lakes <- vwWaterbodyLake[vwWaterbodyLake$WBID %in% Edata$WBID,]
+  Edata = DP2R::DP2R(Tables = "vwEffort")$vwEffort
+
+
   #Create simple date column without time. This facilitates other cleaning steps, and is used later in data analyses
   Edata$date = as.Date(Edata$assessed_dt)#Remove time portion for some functions
 
@@ -34,6 +34,15 @@ EffortClean <- function() {
 
   #Moose Lake grd says open but camera covered and it is march so covered
   Edata[Edata$assess_event_id == 53593,"ice_cover_code"]<-"COVERED"
+
+  #An erroneous repeat of May 4 observations in the wrong month. Delete as correct observations are already there.
+  Edata <- Edata[Edata$date != "2008-03-04", ]
+
+ #BigSkmana has covered for open with boats counted. This (2012 only) data set has NA for num_boat anytime when lake is frozen
+  Edata[Edata$assess_event_id == 25391&lubridate::year(Edata$date)==2012&!is.na(Edata$num_boat),"ice_cover_code"]<-"OPEN"
+
+  ##LAke_hr 570940 has issues as cam count is 24 and ground count is 2!
+
 
   #Yellow Lake camera data has 'open' for one camera when ground counts verify covered. The data also looks suspect that one camera has been misnamed later in season (same date and hour, with different counts). April is a problem for inconsistent ice-cover and like camera mis-namming, also data recorded in boats column (and supposedly open) when clear a covered period
   #### Edata[Edata$WBID == "01202SIML"&Edata$year == 2013&Edata$month %in%c(1:3),"ice_cover_code"]<-"COVERED"
@@ -148,10 +157,9 @@ N_before_clean = nrow(Edata_dt)
 #reorder_columns_dt(Edata_dt, vwEffort_names)
 
 # Add to the environment
-Edata_dt <<- Edata_dt
-Lakes <<- Lakes
-keepers = c("Edata_dt", "Lakes", "conn")
-rm(list = setdiff(ls(), keepers))
+return(Edata_dt)
+#keepers = c("Edata_dt", "conn")
+#rm(list = setdiff(ls(), keepers))
 gc()
   ###What about lakes where they clearly just went off of the 24 clock? We should be able to tell this by the presence of any counts in the period from 12am to 3am.If a assessment_id has any counts in that period, and there are no records of times between 1200 and 1500. However there was no evidence that useful data had been allocated to the night. SO recommend just removing any data from 11pm to 4 am.
 

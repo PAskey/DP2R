@@ -50,16 +50,11 @@ Effort2R <- function() {
   #  hour = lubridate::hour(as.POSIXct(Edata$assessed_dt, format = "%Y-%m-%d %H:%M:%OS", tz = "UTC"))
   #)]
 
-  DP2R::EffortClean()
-
+  Edata_dt = DP2R::EffortClean()
 
 
   # Ensure DayTypes is a data.table object
   DayTypes <- data.table::as.data.table(DP2R::DayTypes)
-
-
-
-
 
   # Perform a left join with DayTypes on the 'date' column
   Edata_dt <- DayTypes[, .(date, daytype)][Edata_dt, on = "date"]
@@ -108,49 +103,51 @@ Effort2R <- function() {
     "comment", "assess_event_id", "assess_event_name", "fishing_effort_id"
   )
 
-  # Order the data and select the first row for each group
+  # Order the data and select the first row for each within hour group
   Edata_dt <- Edata_dt[order(region, WBID, gazetted_name, method, view_location_name, date, assessed_dt, year, month, hour)
   ][, .SD[1], by = group_cols]
 
   # Reorder the columns
   Edata_dt <- data.table::setcolorder(Edata_dt, desired_order)
 
+  ##Add in camera expansion factor lakeview_yrs
+  Edata_dt <- Cam_xdata_dt(Edata_dt)
 
 
   # Convert back to data.frame if necessary
   Edata <- as.data.frame(Edata_dt)
   #Lakes <- vwWaterbodyLake[vwWaterbodyLake$WBID %in% Edata_dt$WBID,]
 
-  ##Add in camera expansion factor lakeview_yrs
-  Edata <- Cam_xdata(Edata)
 
 
   ###################################################################################
   #Final steps as data frame to create factors for analyses and separate ice fishing and open water data.
+  #Potentially not frozen in Winter lakes: OKanangan, Kalamalka, etc.
+  Nofreeze = c("00078OKAN", "00209OKAN", "01530OKAN", "101367OKAN", "01699OKAN", "00146BULL", "00672SHUL", "00418OKAN")
 
   #Create table for ice fishing and open water separately
-  #Assume any ice counts in May to October are errors.
   #OE (observed effort) column is the total effort counted at one time across all modes: ice, tents.
-  Icedata = Edata%>%dplyr::filter((month %in% c(1:3,12)&!ice_cover_code %in% c("OPEN","PARTIAL"))|
-                    ice_cover_code %in% c("COVERED"),
-                  is.na(num_boat)|num_boat == 0)%>%droplevels()
+  Icedata = Edata%>%dplyr::filter(ice_cover_code %in% c("COVERED")&month%in%c(1:4,11:12)|#Consider only these months in ice period#Covered is confirmation frozen
+                                  (is.na(ice_cover_code)&!region%in%c(1,2)&!WBID%in%Nofreeze&month%in%c(1:3,12))
+                                  )%>%droplevels()
   #For shoulder months there must be confirmation the lake is actually iced over and no boats counted
 
-
-  Edata = dplyr::anti_join(Edata, Icedata, by = NULL)%>%dplyr::filter(month%in%c(4:10))
+#Separate open water and ice fish based on declared ice-cover codes and months
+  Edata = suppressMessages(dplyr::anti_join(Edata, Icedata, by = NULL)%>%dplyr::filter(month%in%c(4:10)))
 
   #Put fac.data at very end to get rid of unused factor levels (months are different between ice and open water)
   #Convert categorical and character variables to factors for statistical modelling
 
   Edata = Edata%>%DP2R::fac.data(.,varlist = list("year" = NULL, "month" = "5", "hour" = "12", "daytype" = "WE", "weather_code" = "UNK", "lakeview_yr" = NULL, "lake_hr" = NULL))%>%droplevels()
 
-  Icedata = DP2R::fac.data(Icedata, varlist = list("year" = NULL, "month" = "1", "hour" = "12", "daytype" = "WE", "weather_code" = "UNK", "lakeview_yr" = NULL, "lake_hr" = NULL))%>%droplevels()
+  #Narrow up hours of day during ice-fishing
+  Icedata = DP2R::fac.data(Icedata[Icedata$hour%in%c(7:18),], varlist = list("year" = NULL, "month" = "1", "hour" = "12", "daytype" = "WE", "weather_code" = "UNK", "lakeview_yr" = NULL, "lake_hr" = NULL))%>%droplevels()
 
 
   Edata <<- Edata
   Icedata <<- Icedata
 
-  keepers = c("Edata","Icedata", "Lakes")
+  keepers = c("Edata","Icedata")
   rm(list = setdiff(ls(), keepers))
   gc()
 

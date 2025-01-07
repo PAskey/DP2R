@@ -111,9 +111,9 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
                                     Hrs_p_day_shore = 2.39
                                     ) {
     # Step 1: Calculate predicted boat and shore hours
-    Pred_spv <- ifelse(df$OE == 0, 0, df$Pred_E * ((coalesce(df$spv_obs, 0)) / df$OE))
-    Pred_B <- ifelse(df$OE == 0, 0, round(df$Pred_E * ((coalesce(df$boats_obs, 0)) / df$OE)))
-    Pred_S <- ifelse(df$OE == 0, 0, round(df$Pred_E * (coalesce(df$shore_obs, 0) / df$OE)))
+    Pred_spv <- ifelse(df$OE == 0, 0, df$Pred_E * ((dplyr::coalesce(df$spv_obs, 0)) / df$OE))
+    Pred_B <- ifelse(df$OE == 0, 0, round(df$Pred_E * ((dplyr::coalesce(df$boats_obs, 0)) / df$OE)))
+    Pred_S <- ifelse(df$OE == 0, 0, round(df$Pred_E * (dplyr::coalesce(df$shore_obs, 0) / df$OE)))
 
     # Step 2: Calculate angler days for boat and shore
     spv_AD <- round(Pred_spv / Hrs_p_day)
@@ -126,7 +126,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     Angler_days <- rowSums(cbind(Shore_AD, spv_AD, Boat_AD), na.rm = TRUE)
 
     # Step 4: Replace 0 angler days with NA if observations exist
-    Angler_days <- ifelse(Angler_days == 0 & (coalesce(df$boats_obs, 0) > 0 | coalesce(df$shore_obs, 0) > 0),
+    Angler_days <- ifelse(Angler_days == 0 & (dplyr::coalesce(df$boats_obs, 0) > 0 | dplyr::coalesce(df$shore_obs, 0) > 0),
                           NA, Angler_days)
 
     Angler_days_p_ha <- ifelse(df$area_ha > 0, round(Angler_days / df$area_ha, 1), NA)
@@ -179,12 +179,12 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
   # Define column order
   cols <- c("region", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
 
-  sum.pred = sum.pred%>%
+  shinydata = sum.pred%>%
     dplyr::select(cols)%>%
     dplyr::rename(CAM_Exp=Exp)
 
   #Lake by lake summary of effort data
-  Lake_sum <- sum.pred %>%
+  lakesum <- sum.pred %>%
     dplyr::group_by(WBID, gazetted_name) %>%
     dplyr::summarise(N_years = length(unique(year)), Methods = paste0(unique(method),collapse = ","), mean_AD = round(mean(Angler_days, na.rm = TRUE),1), marker_size = max(mean_AD,1, na.rm = TRUE),
                      .groups = "drop" )%>%
@@ -192,12 +192,12 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
 
 
-  Lake_sum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
+  lakesum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
 
 
 if(data_save){
-save(sum.pred, file = "data/shinydata.rda")
-save(Lake_sum, file = "data/lakesum.rda")
+save(shinydata, file = "data/shinydata.rda")
+save(lakesum, file = "data/lakesum.rda")
 }
 
 }

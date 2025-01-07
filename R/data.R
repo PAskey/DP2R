@@ -82,3 +82,66 @@
 #' # To load the model and use the mode, assign to an object:
 #' fit <- qs2::qs_read("data/DP2R_Ice_Model.qs2")
 
+
+#' # ----------------------------------------------------------------------
+#' shinydata Dataset
+#'
+#' A data frame summarizing effort estimates for lakes for each year/fishing season assessed, which underlies the Shiny application used by provincial biologists. Open water fishing season is standardized from May 1st to October 31st.
+#'
+#'
+#' @format A data frame with 18 columns:
+#' \describe{
+#'   \item{region}{managment region, character}
+#'   \item{WBID}{Waterbody Identifie, character}
+#'   \item{gazetted_name}{Gazetted waterbody name}
+#'   \item{view_location_name}{A unique name given to a specific viewpoint of a lake by camera or ground}
+#'   \item{year}{hour in character format}
+#'   \item{method}{A character string describing the method used to count effort CAM, AIR, GRD}
+#'   \item{N}{The number of observations for the specified year/fishing season a lake has been assessed, integer}
+#'   \item{spv_obs}{The total number of single person vessels observed angling in year, integer}
+#'   \item{boats_obs}{The total number of angling boats observed in year, integer}
+#'   \item{shore_obs}{The total number of shore anglers observed in year, integer}
+#'   \item{spv_AD}{The estimated total angler days from single person vessels in fishing season, integer}
+#'   \item{boats_AD}{The estimated total angler days from angling boats in fishing season, integer}
+#'   \item{shore_AD}{The estimated total angler days from shore anglers in fishing season, integer}
+#'   \item{Angler_days}{The estimated total angler days in fishing season, integer}
+#'   \item{Angler_days_p_ha}{The estimated total angler days per hectare of lake area in fishing season, numeric}
+#'   \item{area_ha}{The lake surface area in hectares, numeric}
+#'   \item{Cam_Exp}{The expansion factor used to expand the estimated effort seen from the view_locaiton_name to the entire lake, numeric}
+#'   \item{Exp_N}{The numerb of verification counts used to estimate the Cam_Exp, numeric}
+#'
+#' }
+#' @usage data(shinydata)
+#' @source Generated internally for the DP2R package.
+#'
+#' @examples
+#' data(shinydata)
+#' head(shinydata)
+"shinydata"
+
+#' # ----------------------------------------------------------------------
+#' lakesum Dataset
+#'
+#' A data frame summarizing effort estimates for lakes over all years assessed, which underlies the Shiny application used by provincial biologists.
+#'
+#'
+#' @format A data frame with 9 columns:
+#' \describe{
+#'   \item{WBID}{Waterbody Identifie, character}
+#'   \item{gazetted_name}{Gazetted waterbody name}
+#'   \item{N_years}{the number of different calendar years iwht effort estimates, integer}
+#'   \item{Methods}{A character string describing the different methods used to count effort CAM, AIR, GRD}
+#'   \item{mean_AD}{The average estimated total angler days across years assessed, numeric}
+#'   \item{marker_size}{A value equal to mean_AD for plotting}
+#'   \item{AD_percentile}{The percentile rank, province wide, of hte average anglers days estiamted for a given lake.}
+#'   \item{lake_latitude}{coordinate of lake, numeric}
+#'   \item{lake_longitude}{coordinate of lake, numeric}
+#' }
+#' @usage data(lakesum)
+#' @source Generated internally for the DP2R package.
+#'
+#' @examples
+#' data(lakesum)
+#' head(lakesum)
+"lakesum"
+

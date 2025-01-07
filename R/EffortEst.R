@@ -192,7 +192,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
 
 
-  lakesum = dplyr::left_join(Lake_sum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
+  lakesum = dplyr::left_join(lakesum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
 
 
 if(data_save){

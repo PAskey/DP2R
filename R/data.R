@@ -125,8 +125,9 @@
 #' A data frame summarizing effort estimates for lakes over all years assessed, which underlies the Shiny application used by provincial biologists.
 #'
 #'
-#' @format A data frame with 9 columns:
+#' @format A data frame with 10 columns:
 #' \describe{
+#'   \item{region}{managment region, character}
 #'   \item{WBID}{Waterbody Identifie, character}
 #'   \item{gazetted_name}{Gazetted waterbody name}
 #'   \item{N_years}{the number of different calendar years iwht effort estimates, integer}

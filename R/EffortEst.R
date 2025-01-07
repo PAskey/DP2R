@@ -168,7 +168,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
 ##Adjust camera data when verification available
   sum.pred <- sum.pred %>%
-    mutate(
+    dplyr::mutate(
       spv_AD = ifelse(method == "CAM", round(spv_AD * Exp,1), spv_AD),
       Boat_AD = ifelse(method == "CAM", round(Boat_AD * Exp,1), Boat_AD),
       Shore_AD = ifelse(method == "CAM", round(Shore_AD * Exp,1), Shore_AD),
@@ -185,7 +185,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
   #Lake by lake summary of effort data
   lakesum <- sum.pred %>%
-    dplyr::group_by(WBID, gazetted_name) %>%
+    dplyr::group_by(region, WBID, gazetted_name) %>%
     dplyr::summarise(N_years = length(unique(year)), Methods = paste0(unique(method),collapse = ","), mean_AD = round(mean(Angler_days, na.rm = TRUE),1), marker_size = max(mean_AD,1, na.rm = TRUE),
                      .groups = "drop" )%>%
     dplyr::mutate(AD_percentile = 100*round(dplyr::min_rank(mean_AD)/dplyr::n(),2))

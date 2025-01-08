@@ -11,11 +11,13 @@ A data frame with 10 columns:
   \item{region}{managment region, character}
   \item{WBID}{Waterbody Identifie, character}
   \item{gazetted_name}{Gazetted waterbody name}
-  \item{N_years}{the number of different calendar years iwht effort estimates, integer}
+  \item{N_years}{the number of different calendar years with effort estimates, integer}
+  \item{min_year}{the earliest year with effort estimates, integer}
+  \item{max_year}{the nmost recent year effort estimates, integer}
   \item{Methods}{A character string describing the different methods used to count effort CAM, AIR, GRD}
   \item{mean_AD}{The average estimated total angler days across years assessed, numeric}
   \item{marker_size}{A value equal to mean_AD for plotting}
-  \item{AD_percentile}{The percentile rank, province wide, of hte average anglers days estiamted for a given lake.}
+  \item{AD_percentile}{The percentile rank, province wide, of the average anglers days estiamted for a given lake.}
   \item{lake_latitude}{coordinate of lake, numeric}
   \item{lake_longitude}{coordinate of lake, numeric}
 }

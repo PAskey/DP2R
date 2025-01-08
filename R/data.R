@@ -104,7 +104,7 @@
 #'   \item{spv_AD}{The estimated total angler days from single person vessels in fishing season, integer}
 #'   \item{boats_AD}{The estimated total angler days from angling boats in fishing season, integer}
 #'   \item{shore_AD}{The estimated total angler days from shore anglers in fishing season, integer}
-#'   \item{Angler_days}{The estimated total angler days in fishing season, integer}
+#'   \item{Angler_days}{The estimated total angler days in fishing season. WIll be NA for camera counts without verified Cam_Exp, integer}
 #'   \item{Angler_days_p_ha}{The estimated total angler days per hectare of lake area in fishing season, numeric}
 #'   \item{area_ha}{The lake surface area in hectares, numeric}
 #'   \item{Cam_Exp}{The expansion factor used to expand the estimated effort seen from the view_locaiton_name to the entire lake, numeric}
@@ -130,11 +130,13 @@
 #'   \item{region}{managment region, character}
 #'   \item{WBID}{Waterbody Identifie, character}
 #'   \item{gazetted_name}{Gazetted waterbody name}
-#'   \item{N_years}{the number of different calendar years iwht effort estimates, integer}
+#'   \item{N_years}{the number of different calendar years with effort estimates, integer}
+#'   \item{min_year}{the earliest year with effort estimates, integer}
+#'   \item{max_year}{the nmost recent year effort estimates, integer}
 #'   \item{Methods}{A character string describing the different methods used to count effort CAM, AIR, GRD}
 #'   \item{mean_AD}{The average estimated total angler days across years assessed, numeric}
 #'   \item{marker_size}{A value equal to mean_AD for plotting}
-#'   \item{AD_percentile}{The percentile rank, province wide, of hte average anglers days estiamted for a given lake.}
+#'   \item{AD_percentile}{The percentile rank, province wide, of the average anglers days estiamted for a given lake.}
 #'   \item{lake_latitude}{coordinate of lake, numeric}
 #'   \item{lake_longitude}{coordinate of lake, numeric}
 #' }

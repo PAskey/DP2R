@@ -24,7 +24,7 @@ A data frame with 18 columns:
   \item{spv_AD}{The estimated total angler days from single person vessels in fishing season, integer}
   \item{boats_AD}{The estimated total angler days from angling boats in fishing season, integer}
   \item{shore_AD}{The estimated total angler days from shore anglers in fishing season, integer}
-  \item{Angler_days}{The estimated total angler days in fishing season, integer}
+  \item{Angler_days}{The estimated total angler days in fishing season. WIll be NA for camera counts without verified Cam_Exp, integer}
   \item{Angler_days_p_ha}{The estimated total angler days per hectare of lake area in fishing season, numeric}
   \item{area_ha}{The lake surface area in hectares, numeric}
   \item{Cam_Exp}{The expansion factor used to expand the estimated effort seen from the view_locaiton_name to the entire lake, numeric}

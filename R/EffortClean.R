@@ -32,6 +32,9 @@ EffortClean <- function() {
   ###Cleaning
   #Step 1: Address some small scale specific issues in the data. These could probably be cleaned by hand.
 
+  #Remove the odd reference to 4e or 4w
+  Edata[Edata$region%in%c("4e","4w"),"region"]<-"4"
+
   #Moose Lake grd says open but camera covered and it is march so covered
   Edata[Edata$assess_event_id == 53593,"ice_cover_code"]<-"COVERED"
 

@@ -28,6 +28,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     data = Edata
   }
   Lakes <- DP2R::DP2R(Tables = "vwWaterbodyLake")$vwWaterbodyLake%>%dplyr::filter(WBID%in%data$WBID)
+  Lakes[Lakes$region%in%c("4e","4w"),"region"]<-"4"
   data = data[data$month%in%month_span,]%>%droplevels()
 
   if (update.model) {
@@ -180,13 +181,19 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
   cols <- c("region", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
 
   shinydata = sum.pred%>%
+    dplyr::mutate(year = as.integer(as.character(year)))%>%#back to number format for shiny functionality
     dplyr::select(cols)%>%
     dplyr::rename(CAM_Exp=Exp)
 
   #Lake by lake summary of effort data
-  lakesum <- sum.pred %>%
+  lakesum <- shinydata %>%
     dplyr::group_by(region, WBID, gazetted_name) %>%
-    dplyr::summarise(N_years = length(unique(year)), Methods = paste0(unique(method),collapse = ","), mean_AD = round(mean(Angler_days, na.rm = TRUE),1), marker_size = max(mean_AD,1, na.rm = TRUE),
+    dplyr::summarise(N_years = length(unique(year)),
+                     min_year = min(year),
+                     max_year = max(year),
+                     Methods = paste0(unique(method),collapse = ","),
+                     mean_AD = round(mean(Angler_days, na.rm = TRUE),1),
+                     marker_size = max(mean_AD,1, na.rm = TRUE),
                      .groups = "drop" )%>%
     dplyr::mutate(AD_percentile = 100*round(dplyr::min_rank(mean_AD)/dplyr::n(),2))
 

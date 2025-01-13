@@ -182,7 +182,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
   shinydata = sum.pred%>%
     dplyr::mutate(year = as.integer(as.character(year)))%>%#back to number format for shiny functionality
-    dplyr::select(cols)%>%
+    dplyr::select(tidyr::all_of(cols))%>%
     dplyr::rename(CAM_Exp=Exp)
 
   #Lake by lake summary of effort data

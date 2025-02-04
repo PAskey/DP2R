@@ -148,3 +148,17 @@
 #' head(lakesum)
 "lakesum"
 
+#' # ----------------------------------------------------------------------
+#' Species Dataset
+#'
+#' A data frame summarizing basic taxonomy and characteristics of fish species found in lakes of BC.
+#'
+#'
+#' @format A data frame with 23 columns:
+#' @usage data(Species)
+#' @source DataPond.
+#'
+#' @examples
+#' data(Species)
+#' head(Species)
+"Species"

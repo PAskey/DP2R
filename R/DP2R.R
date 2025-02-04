@@ -25,7 +25,7 @@
 
 DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyLake"),
                  exclude_types = c("geography", "varbinary"),
-                 envir = parent.frame()) {
+                 envir = .GlobalEnv) {
 
 
   if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
@@ -37,7 +37,14 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyL
                          pwd = pwd")}
 
 
-  stopifnot(is.null(envir) || inherits(envir, "environment"))
+  #stopifnot(is.null(envir) || inherits(envir, "environment"))
+
+  # Manually fetch the 'Releases' table. This works
+  #releases_data <- DBI::dbGetQuery(conn, "SELECT * FROM paris.Releases")
+
+  # Use the retrieved data instead of relying on DP2R
+  #print(head(releases_data))
+
 
   # Identify invalid tables or spelling mistakes
   invalid_tables <- Tables[!Tables %in% DBI::dbListTables(conn)]
@@ -56,8 +63,11 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyL
     # Filter out columns of specified data types
     cols_to_include <- col_info$COLUMN_NAME[!col_info$DATA_TYPE %in% exclude_types]
 
+    # Wrap column names in brackets to handle reserved keywords
+    cols_escaped <- paste0("[", cols_to_include, "]")
+
     # Construct the SQL query
-    cols_string <- paste(cols_to_include, collapse = ", ")
+    cols_string <- paste(cols_escaped, collapse = ", ")
     query <- paste0("SELECT ", cols_string, " FROM ", table_name)
 
     # Execute the query and return the results
@@ -80,6 +90,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyL
       . == "strain_species_code" ~ "strain",
       . == "ploidy_code" ~ "ploidy",
       . == "surface_area_ha" ~ "area_ha",
+      . == "accepted_age" ~ "age",
       TRUE ~ .
     ))
   }

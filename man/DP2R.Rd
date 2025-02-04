@@ -7,7 +7,7 @@
 DP2R(
   Tables = c("vwIndividualFish", "vwFishCollection", "vwWaterbodyLake"),
   exclude_types = c("geography", "varbinary"),
-  envir = parent.frame()
+  envir = .GlobalEnv
 )
 }
 \arguments{

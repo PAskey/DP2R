@@ -23,7 +23,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwIndividualFish", "vwFishCollection","vwWaterbodyLake"),
+DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake"),
                  exclude_types = c("geography", "varbinary"),
                  envir = .GlobalEnv) {
 

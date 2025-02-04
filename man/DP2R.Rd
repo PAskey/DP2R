@@ -5,7 +5,7 @@
 \title{DP2R}
 \usage{
 DP2R(
-  Tables = c("vwIndividualFish", "vwFishCollection", "vwWaterbodyLake"),
+  Tables = c("vwIndividualFish", "vwCollectCount", "vwFishCollection", "vwWaterbodyLake"),
   exclude_types = c("geography", "varbinary"),
   envir = .GlobalEnv
 )

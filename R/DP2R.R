@@ -114,7 +114,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
   # Function to determine mean for numeric and concatenate for character
   mean_or_concat <- function(x) {
     if (is.numeric(x)) {
-      return(mean(x, na.rm = TRUE))  # Calculate mean for numeric columns
+      return(mean(x, na.rm = TRUE))  # Calculate mean to one decimale place for numeric columns
     } else {
       return(toString(unique(x)))  # Concatenate unique values for character columns
     }

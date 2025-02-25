@@ -67,7 +67,7 @@ CLEANreleases <- function(){
       #rel_ph = mean(.data$rel_waterbody_ph, na.rm = TRUE),
       rel_Date = mean(as.Date(.data$rel_Date,
                               format = "%Y-%m-%d"), na.rm = TRUE),
-      g_size = sum(Quantity*g_size)/sum(Quantity),
+      g_size = round(sum(Quantity*g_size)/sum(Quantity),1),
       Quantity = sum(Quantity)
     )%>%
     dplyr::ungroup()

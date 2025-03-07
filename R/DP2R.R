@@ -104,7 +104,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
     data
   }
 
-  # Function to aggregate vwWaterbodyLake
+  # Function to aggregate vwWaterbodyLake when multi records per lake and rename if alias is used
   aggregate_vwWaterbodyLake <- function(data) {
     data %>%
       dplyr::group_by(WBID) %>%
@@ -120,6 +120,8 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
     }
   }
 
+
+
   # Load each table excluding specified data types
   out <- lapply(stats::setNames(nm = Tables), function(tb) {
     ret <- tryCatch(
@@ -133,6 +135,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
       # If the current table is vwWaterbodyLake, apply aggregation
       if (tb == "vwWaterbodyLake") {
         ret <- aggregate_vwWaterbodyLake(ret)
+
       }
     }
 

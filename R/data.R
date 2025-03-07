@@ -162,3 +162,17 @@
 #' data(Species)
 #' head(Species)
 "Species"
+#' # ----------------------------------------------------------------------
+#' Lake names Dataset
+#'
+#' A data frame summarizing lake names by using gazetted name where available and alias if not.Stirings ofr " Lake" or "Creek" are dropped. Also has concatenated lake_name_WBID for quick reference.
+#'
+#'
+#' @format A data frame with 5 columns:
+#' @usage data(lake_names)
+#' @source DataPond.
+#'
+#' @examples
+#' data(lake_names)
+#' head(lake_names)
+"lake_names"

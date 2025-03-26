@@ -43,7 +43,7 @@ CLEANreleases <- function(){
       .data$sby_code < 1 & .data$cur_life_stage_code %in% c("YE", "YE+", "FG", "FFG")& .data$g_size >5& .data$g_size <500 ~ 1L,#Only trust YE designation if don't have sby_code
       #Now with Fraser Valleys it gets really confusing. This is NOT correct 100% of the time.
       .data$stock_strain_loc_name == "FRASER VALLEY" & .data$cur_life_stage_code %in% c("EG", "EE", "FF", "FR")&g_size <10 ~ 0L,
-      TRUE ~ sby2age(.data$species_code, .data$sby_code, .data$year),
+      TRUE ~ DP2R::sby2age(.data$species_code, .data$sby_code, .data$year),
     )
   )
 
@@ -110,7 +110,7 @@ CLEANreleases <- function(){
 
 
   maxxages = vwIndividualFish%>%
-    dplyr::filter(age<100)%>%#there is one erroneous fish with an age of 2019
+    #dplyr::filter(age<100)%>%#there is one erroneous fish with an age of 2019
     dplyr::semi_join(Releases, by = c("WBID", "species_code"))%>%
     dplyr::group_by(WBID, year, species_code) %>%
     dplyr::summarise(max = max(endage,max(age, na.rm = T)), .groups = "drop")%>%
@@ -119,7 +119,7 @@ CLEANreleases <- function(){
     suppressWarnings()
 
 
-  #Step 3. From those sampled lake years find the sequence of previous stocking years to that lake that could have fish in the lake at the time of stocking. Search back to oldest age observed or the endage.
+  #Step 3. From those sampled lake years find the sequence of previous stocking years to that lake that could have fish in the lake at the time of sampling. Search back to oldest age observed or the endage.
 
   Sampled = maxxages%>%
     dplyr::filter(!is.na(year))%>%

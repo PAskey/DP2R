@@ -61,7 +61,9 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
     col_info <- DBI::dbGetQuery(conn, paste0("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'"))
 
     # Filter out columns of specified data types
-    cols_to_include <- col_info$COLUMN_NAME[!col_info$DATA_TYPE %in% exclude_types]
+    cols_to_include <- col_info$COLUMN_NAME[
+      !col_info$DATA_TYPE %in% exclude_types
+      ]
 
     # Wrap column names in brackets to handle reserved keywords
     cols_escaped <- paste0("[", cols_to_include, "]")

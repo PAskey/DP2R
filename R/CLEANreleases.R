@@ -25,7 +25,8 @@
 CLEANreleases <- function(){
 
   #Check data has been loaded.
-  if(!exists("Releases")){stop("Need to start with a data load to make SLD releases and vwIndividualFish available to this function")}
+  if(!exists("Releases")){DP2R::Releases2R()}
+  if(!exists("vwIndividualFish")){DP2R::DP2R(Tables = "vwIndividualFish")}
 
   #Step 1. Clean and standardize release data
 
@@ -113,7 +114,7 @@ CLEANreleases <- function(){
     #dplyr::filter(age<100)%>%#there is one erroneous fish with an age of 2019
     dplyr::semi_join(Releases, by = c("WBID", "species_code"))%>%
     dplyr::group_by(WBID, year, species_code) %>%
-    dplyr::summarise(max = max(endage,max(age, na.rm = T)), .groups = "drop")%>%
+    dplyr::summarise(max = max(endage,max(age[age<50], na.rm = T), na.rm = T), .groups = "drop")%>%
     dplyr::group_by(WBID,species_code) %>%
     dplyr::mutate(max = max(max, na.rm = T))%>%
     suppressWarnings()

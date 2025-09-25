@@ -4,6 +4,7 @@
 #' @name Releases2R
 #' @keywords SPDT; DP2R
 #' @export
+#' @param Requests a True/False indicator on whether to upload request information as well
 #' @examples
 #' Releases2R()
 #' @importFrom magrittr "%>%"
@@ -13,15 +14,19 @@
 
 #_______________________________________________________________________________
 #Open channel to SLD and download data. Make sure OpenVPN GUI is running
-Releases2R <- function(){
+Releases2R <- function(Requests = FALSE){
 
-  if(!exists("vwWaterbodyLake")){DP2R()}
+  if(!exists("vwWaterbodyLake")){DP2R(Tables = "vwWaterbodyLake")}
 
   ch <- RODBC::odbcDriverConnect('driver={SQL Server};server=FFSBCSQL06;
                         DSN=SMALL_LAKES-TEST;DATABASE=SMALL_LAKES-TEST;
                         Trusted_Connection=TRUE')
 
   Releases <-RODBC::sqlFetch(ch,"ffsbc.vw_paris_releases", na.strings=c("","NA"))
+
+  if(Requests){
+  Requests <-RODBC::sqlFetch(ch,"ffsbc.vw_paris_requests", na.strings=c("","NA"))
+              }
 
   close(ch)
 

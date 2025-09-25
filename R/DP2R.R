@@ -80,11 +80,23 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
 
   #Rename some columns to shorter, standard descriptors if present in table
   rename_columns_if_present <- function(data) {
-    data %>% dplyr::rename_with(~ dplyr::case_when(
+    # If any sample_type cols exist, coalesce them into `method`
+    candidates <- intersect(
+      c("survey_type", "fish_collection_type"),
+      names(data)
+    )
+    if (length(candidates) > 0 && !"method" %in% names(data)) {
+      data <- data %>%
+        dplyr::mutate(method = dplyr::coalesce(!!!rlang::syms(candidates)))%>%
+        dplyr::select(-tidyselect::any_of(candidates))
+    }
+
+
+    data<-data %>%
+      dplyr::rename_with(~ dplyr::case_when(
       . == "region_code" ~ "region",
       . == "waterbody_identifier" ~ "WBID",
       . == "fishing_effort_type" ~ "method",
-      . == "fish_collection_type" ~ "method",
       . == "assess_year" ~ "year",#In Effort table
       . == "date_assessed_string" ~ "year",#In IndividualFish table
       . == "sex_code" ~ "sex",
@@ -95,6 +107,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
       . == "accepted_age" ~ "age",
       TRUE ~ .
     ))
+    data
   }
 
 

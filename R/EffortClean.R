@@ -13,16 +13,6 @@
 
 EffortClean <- function() {
 
-
-  #Bring in data from DataPond
-  #DP2R::DP2R(Tables = c("FishingEffort", "Waterbody", "vwWaterbodyLake","AssessEvent", "vwEffort"))
-
-  #Lakes = merge(Waterbody[,c("WBID","locale_id")], vwWaterbodyLake, by = "WBID")
-
-  #merge to get WBID in data frame
-  #Edata = merge(FishingEffort,AssessEvent[,c("assess_event_id", "assess_event_name","locale_id")], by = c("assess_event_id"))%>%
- #         merge(Lakes[,c("region","WBID", "gazetted_name","locale_id")], by = "locale_id")
-
   Edata = DP2R::DP2R(Tables = "vwEffort")$vwEffort
 
 
@@ -32,20 +22,8 @@ EffortClean <- function() {
   ###Cleaning
   #Step 1: Address some small scale specific issues in the data. These could probably be cleaned by hand.
 
-  #Remove the odd reference to 4e or 4w
-  Edata[Edata$region%in%c("4e","4w"),"region"]<-"4"
-
-  #Moose Lake grd says open but camera covered and it is march so covered
-  Edata[Edata$assess_event_id == 53593,"ice_cover_code"]<-"COVERED"
-
   #An erroneous repeat of May 4 observations in the wrong month. Delete as correct observations are already there.
   Edata <- Edata[Edata$date != "2008-03-04", ]
-
- #BigSkmana has covered for open with boats counted. This (2012 only) data set has NA for num_boat anytime when lake is frozen
-  Edata[Edata$assess_event_id == 25391&lubridate::year(Edata$date)==2012&!is.na(Edata$num_boat),"ice_cover_code"]<-"OPEN"
-
-  ##LAke_hr 570940 has issues as cam count is 24 and ground count is 2!
-
 
   #Yellow Lake camera data has 'open' for one camera when ground counts verify covered. The data also looks suspect that one camera has been misnamed later in season (same date and hour, with different counts). April is a problem for inconsistent ice-cover and like camera mis-namming, also data recorded in boats column (and supposedly open) when clear a covered period
   #### Edata[Edata$WBID == "01202SIML"&Edata$year == 2013&Edata$month %in%c(1:3),"ice_cover_code"]<-"COVERED"

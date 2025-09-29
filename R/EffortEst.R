@@ -27,9 +27,9 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     DP2R::Effort2R()
     data = Edata
   }
-  Lakes <- DP2R::DP2R(Tables = "vwWaterbodyLake")$vwWaterbodyLake%>%dplyr::filter(WBID%in%data$WBID)
-  Lakes[Lakes$region%in%c("4e","4w"),"region"]<-"4"
   data = data[data$month%in%month_span,]%>%droplevels()
+  Lakes <- DP2R::DP2R(Tables = "vwWaterbodyLake")$vwWaterbodyLake%>%dplyr::filter(WBID%in%data$WBID)
+
 
   if (update.model) {
     DP2R::Effortmodel(data = data)  # Update the model with new data if required
@@ -155,11 +155,12 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     dplyr::select(c(WBID:N,Angler_days))%>%
     tidyr::pivot_wider(names_from = method, values_from = c(Angler_days))%>%
     dplyr::rowwise()%>%
-    dplyr::mutate(Exp = max(1,max(AIR, GRD, na.rm = TRUE)/CAM))%>%
+    dplyr::mutate(Exp = if_else(CAM > 0, max(1, max(AIR, GRD, na.rm = TRUE) / CAM), NA_real_))%>%
 
     #Step 3. When more than one year or verifcation method is used for same camera view take a weighted mean
     dplyr::group_by(WBID, view_location_name)%>%
-    dplyr::summarize(Exp_N = sum(N), Exp = round(weighted.mean(Exp, N),2))%>%
+    dplyr::summarize(Exp_N = sum(N),
+                     Exp = round(weighted.mean(Exp, N),2))%>%
     dplyr::ungroup()
 
 ##OK, now we can adjust estimates from cameras that have verification counts

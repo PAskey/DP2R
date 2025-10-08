@@ -4,7 +4,10 @@
 \alias{Releases2R}
 \title{Releases2R}
 \usage{
-Releases2R()
+Releases2R(Requests = FALSE)
+}
+\arguments{
+\item{Requests}{a True/False indicator on whether to upload request information as well}
 }
 \description{
 Ultimately, as upload filters and cleaning are improved in the main database, this function will become obsolete.

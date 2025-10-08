@@ -131,9 +131,27 @@ Biological = Biological%>%
     Dec.Age = round(.data$age+(lubridate::decimal_date(as.Date(.data$date_assessed)) - lubridate::year(as.Date(.data$date_assessed))),2)
   )
 
+#IDENTIFY OUTLIERS
+Biological <- Biological%>%
+  dplyr::mutate(outlier = ifelse(is.na(.data$length_mm)|.data$length_mm>900|.data$species_code%in%c("UNK","NFC","NFP"),1,
+                                 ifelse(!is.na(.data$weight_g)&.data$species_code %in% c('ACT','CT','WCT','CRS','RBCT','RB','KO','EB','DV','BT','GB','TR','ST') &
+                                          (!(.data$length_mm %in% c(60:1000)) | 0.65 > .data$condition_factor | 2.25 < .data$condition_factor),1,0)
+  ))
+
+
+#Summarize lake species composition information
+Cap_Spp = vwCollectCount%>%mutate(year = lubridate::year(as.Date(end_dt)))%>%dplyr::select( WBID, year, species_code)%>%unique()
+
+Ind_Spp = vwIndividualFish%>%dplyr::select(WBID, year, species_code)%>%unique()
+
+Lake_Spp = dplyr::full_join(Cap_Spp,Ind_Spp)
+
+Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%dplyr::select(WBID:stocked_species, subfamily)
+
 
 Biological<<-Biological
 NR_sum<<-NR_sum
+Lake_Spp<<-Lake_Spp
 
 
 

@@ -23,7 +23,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake"),
+DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species"),
                  exclude_types = c("geography", "varbinary"),
                  envir = .GlobalEnv) {
 
@@ -58,7 +58,8 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
 
   fetch_data_excluding_types <- function(conn, table_name, exclude_types) {
     # Get column information
-    col_info <- DBI::dbGetQuery(conn, paste0("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'"))
+    col_info <- DBI::dbGetQuery(conn,
+                                paste0("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'"))
 
     # Filter out columns of specified data types
     cols_to_include <- col_info$COLUMN_NAME[
@@ -74,6 +75,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
 
     # Execute the query and return the results
     DBI::dbGetQuery(conn, query)
+
   }
 
 
@@ -119,12 +121,12 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
     data
   }
 
-  # Function to aggregate vwWaterbodyLake when multi records per lake and rename if alias is used
+   #Function to aggregate vwWaterbodyLake when multi records per lake and rename if alias is used
   aggregate_vwWaterbodyLake <- function(data) {
     data %>%
       dplyr::group_by(WBID) %>%
       dplyr::summarise(across(everything(), mean_or_concat), .groups = 'drop')
-  }
+ }
 
   # Function to determine mean for numeric and concatenate for character
   mean_or_concat <- function(x) {
@@ -134,7 +136,6 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
       return(toString(unique(x)))  # Concatenate unique values for character columns
     }
   }
-
 
 
   # Load each table excluding specified data types

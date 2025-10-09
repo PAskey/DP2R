@@ -24,7 +24,7 @@
 #' @keywords SPDT
 #' @export
 #' @param Spp an optional character string or character vector for BC species code (e.g. "RB" or c("KO", "EB"), etc.). This will filter data to only that species.
-#' @param Contrast a required character string describing the experimental contrast, which must be a field in the SPDTdata (e.g. "species_code", "Strain", "SAR_cat", "Genotype" are the 3 possibilities now).
+#' @param Contrast a required character string describing the experimental contrast, which must be a field in the SPDTdata (e.g. "species_code", "Strain_rel", "SAR_cat", "Geno_rel" are the 3 possibilities now).
 #' Entering a value for contrast will filter to lake years that had fish present from a co-stocking event of groups varying in your contrast variable.
 #' @param Controls an optional character vector to assign controls (grouping variables) that must be met to compare the "Contrast" groups. Default is the full list of potential contrasts. Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficulat to control for size-at-release SAR_cat becasue they are released at differnet stage-sizes)
 #' @param Strains an optional character string or character vector describing the strain code (SPDTdata format e.g. "RB" for Rainbow Trout) for source population. This will filter to only those strains listed
@@ -87,7 +87,7 @@ if (!is.null(Strains)) {
 }
 
 if (!is.null(Genotypes)) {
-  idf = subset(idf, Genotype %in% Genotypes)
+  idf = subset(idf, Geno_rel %in% Genotypes)
   clipsdf = subset(clipsdf, clipGenos %in% Genotypes)
 }
 
@@ -169,33 +169,6 @@ gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Season", "method"))%>%
     Dec.Age = round(.data$age+(lubridate::decimal_date(.data$avg_sample_date) - year),2),
     Delta_t = as.numeric(difftime(avg_sample_date,avg_rel_date, units = "days")))
 
-#Sections to pull specific contrast years
-#if (!is.null(Contrast)) {
-
-#Contrast_possible = c("Genotype", "Strain", "SAR_cat")
-
-#controls = dplyr::setdiff(Contrast_possible, Contrast)
-
-#Find set of experiments 'exps' comparing the contrast of interest that exist in the database
-#If the contrast is species, then not worth worrying about other controls (Maybe Genotype?Add later if want) and clips
-#if(Contrast != "species_code"){
-##MAYBE USE N_DISTINCT TO CONTROL FOR FACTOR LEVELS BEING COUNTED INSTEAD OF VALUES?
-#exps <- gdf%>%
- # dplyr::filter(!grepl(",",get(Contrast)))%>%#discount groups that included multiple levels within contrast (they are always separated by commas)
-#  dplyr::group_by(Lk_yr, Int.Age, !!!rlang::syms(controls))%>%
-#  dplyr::summarize(Ncontrasts = length(unique(na.omit(get(Contrast)))), Nclips = #length(unique(na.omit(Clip))))%>%
-#  dplyr::filter(Nclips>=Ncontrasts&Ncontrasts>1)%>%
-#  droplevels()
-#}else{
-#  Contrast_possible = c("species_code", "Genotype")#Could add genotype later
-#  exps <- gdf%>%
-#    dplyr::filter(!grepl(",",get(Contrast)))%>%
-#    dplyr::group_by(Lk_yr, Int.Age)%>%
-#    dplyr::summarize(Ncontrasts = length(unique(na.omit(get(Contrast)))))%>%
-#    dplyr::filter(Ncontrasts>1)%>%
-#    droplevels()
-#}
-
 
 
 exps <- gdf%>%
@@ -239,7 +212,7 @@ gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",get(Contrast)),
 #First only use groups that are recruited to gillnets (>150mm).
 predf = gdf%>%
   #dplyr::filter(mean_FL>150)%>%
-  dplyr::group_by(Lk_yr, locale_name,year, Season, method, age, !!!rlang::syms(Controls))%>%#, sby_code
+  dplyr::group_by(Lk_yr, WBID, locale_name,year, Season, method, age, !!!rlang::syms(Controls))%>%#, sby_code
   dplyr::filter(!grepl(",",get(Contrast)), !is.na(N_ha_rel))%>%#remove group that included multiple levels within contrast. REmove fish that do not llink to stocking records
   dplyr::summarize(groups = dplyr::n(), N = sum(N), xN = sum(NetXN), Nr = sum(N_ha_rel))%>%
 
@@ -299,8 +272,10 @@ wide_df = wide_df%>%
   dplyr::mutate(avg_surv = exp(mean(log(surv_diff))))%>%#Not sure if this is valid now that it is a ratio of proportions
   dplyr::ungroup()
 
-#Add species data as typically important to survival
-#wide_df = merge(wide_df,Lake_Spp, all.x = T)
+#Add competitor species data as typically important to survival
+
+wide_df = left_join(wide_df,Lake_Spp[,c("WBID","year","Non_salm")], by = c("WBID","year"))
+
 
 #Put into global environment. These only appear if Contrast is not NULL.
 wide_df<<-wide_df

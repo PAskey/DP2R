@@ -146,7 +146,12 @@ Ind_Spp = vwIndividualFish%>%dplyr::select(WBID, year, species_code)%>%unique()
 
 Lake_Spp = dplyr::full_join(Cap_Spp,Ind_Spp)
 
-Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%dplyr::select(WBID:stocked_species, subfamily)
+Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
+  dplyr::select(WBID:stocked_species, subfamily)%>%
+  dplyr::group_by(WBID, year)%>%
+  dplyr::mutate(All_spp = paste(sort(unique(species_code)), collapse = ','),
+                Spp_class = paste(sort(unique(subfamily)), collapse = ','),
+                Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
 
 Biological<<-Biological

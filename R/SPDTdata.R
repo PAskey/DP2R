@@ -58,7 +58,7 @@ SPDTdata <- function(Spp = NULL, Contrast = NULL, Controls = c("species_code","G
 
   if(Data_source ==FALSE&(!exists("Biological")|!exists("Link_rel"))){stop("Need to start with a data load from SLD (i.e. Data_source = TRUE) at least once to start")}
 
-  if("Strain"%in%Controls|"SAR_cat"%in%Controls){warning("Having SAR_cat or Strain included in controls for broad contrasts like species may limit experiments")}
+  #if("Strain"%in%Controls|"SAR_cat"%in%Controls){warning("Having SAR_cat or Strain included in controls for broad contrasts like species may limit experiments")}
 
   if(Contrast == "species_code"){Controls = Controls[!Controls == 'Strain_rel']}
 
@@ -273,9 +273,14 @@ wide_df = wide_df%>%
   dplyr::ungroup()
 
 #Add competitor species data as typically important to survival
+Spp_comp =Lake_Spp%>%
+  dplyr::select(WBID, species_code, subfamily)%>%
+  dplyr::group_by(WBID)%>%
+  dplyr::summarize(Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
-wide_df = left_join(wide_df,Lake_Spp[,c("WBID","year","Non_salm")], by = c("WBID","year"))
-
+wide_df = left_join(wide_df,Spp_comp, by = c("WBID"))
+#Time varying species composition
+#wide_df = left_join(wide_df,Lake_Spp[,c("WBID","year","Non_salm")], by = c("WBID","year"))
 
 #Put into global environment. These only appear if Contrast is not NULL.
 wide_df<<-wide_df

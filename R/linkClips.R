@@ -105,7 +105,7 @@ Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),], by = c("WBI
 #Bring back together and remove temporary files.
 Biological = rbind(Bioambig,Bioaged)
 
-rm(Clipsrel, Stock, NR, NR_lakes, Biopossible, Bioambig, Bioaged,  Link_rel_noage)
+rm(Clipsrel, NR, NR_lakes, Biopossible, Bioambig, Bioaged,  Link_rel_noage)
 
 #Replace un-observable values associated with stocking events and based on clips.
 replace_uni = function(var,uni, Poss_NR){

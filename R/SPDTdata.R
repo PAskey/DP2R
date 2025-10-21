@@ -26,7 +26,7 @@
 #' @param Spp an optional character string or character vector for BC species code (e.g. "RB" or c("KO", "EB"), etc.). This will filter data to only that species.
 #' @param Contrast a required character string describing the experimental contrast, which must be a field in the SPDTdata (e.g. "species_code", "Strain_rel", "SAR_cat", "Geno_rel" are the 3 possibilities now).
 #' Entering a value for contrast will filter to lake years that had fish present from a co-stocking event of groups varying in your contrast variable.
-#' @param Controls an optional character vector to assign controls (grouping variables) that must be met to compare the "Contrast" groups. Default is the full list of potential contrasts. Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficulat to control for size-at-release SAR_cat becasue they are released at differnet stage-sizes)
+#' @param drop_controls an optional character string or vector to drop covariates from the potenital Contrast list that would be used as controls when filtering and grouping data by the selected Contrast. Default is the full list of potential contrasts are usd as controls (i.e. none are dropped). Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficult to control for size-at-release SAR_cat because they are released at different stage-sizes)
 #' @param Strains an optional character string or character vector describing the strain code (SPDTdata format e.g. "RB" for Rainbow Trout) for source population. This will filter to only those strains listed
 #' @param Genotypes an optional character string or character vector to filter data to specific genotypes (e.g. 2n or AF3n)
 #' @param filters a vector of lake-years returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
@@ -50,7 +50,7 @@
 #' @importFrom rlang .data
 
 
-SPDTdata <- function(Spp = NULL, Contrast = NULL, Controls = c("species_code","Geno_rel","Strain_rel","SAR_cat"), Strains = NULL, Genotypes = NULL, filters = NULL, Data_source = TRUE){
+SPDTdata <- function(Spp = NULL, Contrast = NULL, drop_controls = NULL, Strains = NULL, Genotypes = NULL, filters = NULL, Data_source = TRUE){
 
   if(is.null(Contrast)){stop("Must define a 'Contrast' for SPDTdata() function, see ?SPDTdata, for all data use SLD2R()  or linkClips() instead")}
 
@@ -58,11 +58,18 @@ SPDTdata <- function(Spp = NULL, Contrast = NULL, Controls = c("species_code","G
 
   if(Data_source ==FALSE&(!exists("Biological")|!exists("Link_rel"))){stop("Need to start with a data load from SLD (i.e. Data_source = TRUE) at least once to start")}
 
-  #if("Strain"%in%Controls|"SAR_cat"%in%Controls){warning("Having SAR_cat or Strain included in controls for broad contrasts like species may limit experiments")}
+#Create list of covariates, and those to be controlled in data summaries
+  Covariates = c("species_code","Geno_rel","Strain_rel","SAR_cat")
 
-  if(Contrast == "species_code"){Controls = Controls[!Controls == 'Strain_rel']}
+  if(!is.null(drop_controls)){Covariates = Covariates[!Covariates %in% drop_controls]}
 
-  controls = dplyr::setdiff(Controls, Contrast)
+ #Always drop strain if comparing species
+   if(Contrast == "species_code"){Covariates = Covariates[!Covariates == 'Strain_rel']}
+
+  controls = dplyr::setdiff(Covariates, Contrast)
+
+  warning(paste0("Note, the following controls were used in the data filter for the contrast:",
+                  paste(controls, collapse = ", ")))
 
 #Initial filters. Keep Clip == "NONE" because experimental fish in Yellow (KO) and maybe elsewhere were non-clips.
 
@@ -82,13 +89,13 @@ if (!is.null(Spp)) {
 }
 
 if (!is.null(Strains)) {
-  idf = subset(idf, Strain %in% Strains)
-  clipsdf = subset(clipsdf, clipStrains %in% Strains)
+  idf = subset(idf, Strain_rel %in% Strains)
+  clipsdf = subset(clipsdf, Strain_rel %in% Strains)
 }
 
 if (!is.null(Genotypes)) {
   idf = subset(idf, Geno_rel %in% Genotypes)
-  clipsdf = subset(clipsdf, clipGenos %in% Genotypes)
+  clipsdf = subset(clipsdf, Geno_rel %in% Genotypes)
 }
 
 #Categorize release size to facilitate finding true contrasts and analyzing
@@ -212,29 +219,37 @@ gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",get(Contrast)),
 #First only use groups that are recruited to gillnets (>150mm).
 predf = gdf%>%
   #dplyr::filter(mean_FL>150)%>%
-  dplyr::group_by(Lk_yr, WBID, locale_name,year, Season, method, age, !!!rlang::syms(Controls))%>%#, sby_code
-  dplyr::filter(!grepl(",",get(Contrast)), !is.na(N_ha_rel))%>%#remove group that included multiple levels within contrast. REmove fish that do not llink to stocking records
-  dplyr::summarize(groups = dplyr::n(), N = sum(N), xN = sum(NetXN), Nr = sum(N_ha_rel))%>%
-
-  dplyr::arrange(desc(get(Contrast)))%>%
+  dplyr::group_by(dplyr::across(dplyr::all_of(c(
+    "Lk_yr","WBID","locale_name","year","Season","method","age",
+    controls, Contrast   # Contrast is included via Covariates, but spelled out here for clarity
+  ))))%>%#, sby_code
+  dplyr::filter(!grepl(",",.data[[Contrast]]), !is.na(N_ha_rel))%>%#remove group that included multiple levels within contrast. Remove fish that do not link to stocking records
+  dplyr::summarize(groups = dplyr::n(),
+                   N = sum(N),
+                   xN = sum(NetXN),
+                   Nr = sum(N_ha_rel),
+                   .groups = "drop_last")%>%
+  # keep only key-groups that have >= 2 distinct Contrast levels
+  dplyr::filter(dplyr::n_distinct(.data[[Contrast]]) >= 2) %>%
+  dplyr::arrange(desc(.data[[Contrast]]))%>%
   dplyr::ungroup()
 
 
 #The distinct categories found in the contrast
 cats = predf%>%
-  dplyr::pull(get(Contrast))%>%unique()%>%sort(decreasing = TRUE)
+  dplyr::pull(.data[[Contrast]])%>%unique()%>%sort(decreasing = TRUE)
 
-#SAR_cat we want in numeric order. For strain or genotype we want 2N and BW at back end as they are the "base case" higher smple size and survival.
+#SAR_cat we want in numeric order. For strain or genotype we want 2N and BW at back end as they are the "base case" higher sample size and survival.
 if(Contrast == "SAR_cat"){
   cats = sort(cats)
-  predf = dplyr::arrange(predf, get(Contrast))
+  predf = dplyr::arrange(predf, .data[[Contrast]])
   }
 
 #i = 1
 #j = 2
 #calculations so that spreading an renaming columns works even when grouping columns change(i.e. for species groupings)
 df = NULL
-spread = c("xN", "Nr", "N")
+spread = c("xN", "Nr", "N", "groups")
 Lspread = length(spread)
 maxcols = as.integer(ncol(predf)-(Lspread-1)+(Lspread*2-1))#In the loop below this will be the max with of spread dataframe
 
@@ -243,15 +258,28 @@ for(i in 1:(length(cats)-1)){
     Cons = c(i,j)
     Con = paste0(cats[i],"vs",cats[j])
     dfnew = predf%>%
-      dplyr::filter(get(Contrast) %in% cats[c(i,j)])%>%#Can switch to filter by delta
+      dplyr::filter(.data[[Contrast]] %in% cats[c(i,j)])%>%#Can switch to filter by delta
       dplyr::mutate(Comparison = Con)%>%
-      tidyr::pivot_wider(names_from = {{Contrast}}, values_from = tidyselect::all_of(spread))%>%#, names_sort = TRUE
-      dplyr::rename(a_xN = maxcols-5, b_xN = maxcols-4, a_Nr=maxcols-3, b_Nr = maxcols-2, a_N = maxcols-1, b_N = maxcols)%>%
+      tidyr::pivot_wider(names_from = !!rlang::sym(Contrast),
+                         values_from = tidyselect::all_of(spread)
+                         )%>%#, names_sort = TRUE
+      dplyr::rename(a_xN = tidyselect::all_of(paste0("xN_", cats[i])),
+                    b_xN = tidyselect::all_of(paste0("xN_", cats[j])),
+                    a_Nr = tidyselect::all_of(paste0("Nr_", cats[i])),
+                    b_Nr = tidyselect::all_of(paste0("Nr_", cats[j])),
+                    a_N  = tidyselect::all_of(paste0("N_" , cats[i])),
+                    b_N  = tidyselect::all_of(paste0("N_" , cats[j]))
+                    )%>%
       dplyr::rowwise()%>%
-      dplyr::filter(0<(sum(a_xN, b_xN)), !is.na(sum(a_xN, b_xN, a_Nr, b_Nr)))%>%
-      dplyr::mutate(Recap_p = a_xN/(a_xN+b_xN), Release_p = a_Nr/(a_Nr+b_Nr), a = cats[i], b = cats[j], N = sum(a_N, b_N))%>%
+      dplyr::filter(0<(sum(a_xN, b_xN)),
+                    !is.na(sum(a_xN, b_xN, a_Nr, b_Nr)))%>%#Do not want na.rm = T becasue want to remove cases where there are NA in one of the categories
+      dplyr::mutate(Recap_p = a_xN/(a_xN+b_xN),
+                    Release_p = a_Nr/(a_Nr+b_Nr),
+                    a = cats[i], b = cats[j],
+                    N = sum(a_N, b_N, na.rm = TRUE))%>%
       dplyr::ungroup()
-    df = rbind(df, dfnew)
+    df <- dplyr::bind_rows(df, dfnew)  # prefer bind_rows for tibbles
+
 
   }
 }
@@ -278,7 +306,7 @@ Spp_comp =Lake_Spp%>%
   dplyr::group_by(WBID)%>%
   dplyr::summarize(Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
-wide_df = left_join(wide_df,Spp_comp, by = c("WBID"))
+wide_df = dplyr::left_join(wide_df,Spp_comp, by = c("WBID"))
 #Time varying species composition
 #wide_df = left_join(wide_df,Lake_Spp[,c("WBID","year","Non_salm")], by = c("WBID","year"))
 

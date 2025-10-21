@@ -322,7 +322,7 @@ if (Metric == "wt_hist"){
   if(min_N<20){warning("Min_N should be set >=20 for pop length frequency plots")}
 
   p = pi+
-    ggplot2::geom_histogram(ggplot2::aes(x = .data$wt_hist), alpha = 0.2, lwd = 1, position = "identity", binwidth = 20)+
+    ggplot2::geom_histogram(ggplot2::aes(x = .data$weight_g), alpha = 0.2, lwd = 1, position = "identity", binwidth = 20)+
     ggplot2::xlim(c(100,450))+
     ggplot2::theme_bw()+
     ggplot2::labs( fill = Contrast, colour = Contrast)

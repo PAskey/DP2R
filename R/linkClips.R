@@ -39,17 +39,27 @@ if(Data_source == TRUE){DP2R::DP2R()
                         }
 if(!exists("Releases")){stop("Need to start with a data load from SLD (i.e. Data_source = TRUE) at least once to start")}
 
+######################
+  #A section to try and clean up if biologists record "NONE" or leave NULL for mark_code when not having a mark is an identifier.
 
-
+#Number of unique clips potentially at large in a given year if the fish is not aged
 Clipsrel = Link_rel%>%
   dplyr::group_by(WBID, year, species_code)%>%
   dplyr::summarise(Nclips = sum(!is.na(mark_code)&is.na(age)))%>%
   dplyr::filter(Nclips>0)
 
+#Add "NONE" to aged (or unaged?) fish where there are multiple clips at large but this group is not clipped (so unique)
+Link_rel = Link_rel%>%
+  dplyr::mutate(mark_code = ifelse((is.na(mark_code)& !is.na(sby_rel) & !stringr::str_detect(sby_rel, ",")&(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+
 #Clean up NOREC and UNK mark_code entries in lake-years where no clips should be present anyways.
 vwIndividualFish = vwIndividualFish%>%
   dplyr::mutate(mark_code = ifelse((mark_code %in% c("UNK","NONE")&!(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),NA,mark_code))
 
+##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT S NA?
+
+
+#########################
 
 #Join potential stocking events to vwIndividualFish to check for natural recruits in stocked species
 #This joins by age, so ageing errors can lead to false possible Natural Recruit
@@ -72,12 +82,16 @@ SampleN = vwIndividualFish%>%
 NR_sum = NR%>%
   dplyr::filter(interaction(WBID, year)%in%interaction(SampleN$WBID, SampleN$year), species_code%in%c("CT","EB","KO","RB", "WCT"))%>%
   dplyr::group_by(region, gazetted_name, WBID,year,species_code)%>%
-  dplyr::summarise(N = dplyr::n(), Nnr = sum(Poss_NR,na.rm = T), p = round(Nnr/N, 2), MeanFL = round(mean(length_mm, na.rm = T)), MaxFL = max(length_mm, na.rm = T))
+  dplyr::summarise(N = dplyr::n(),
+                   Nnr = sum(Poss_NR,na.rm = T),
+                   pNR = round(Nnr/N, 2),
+                   MeanFL = round(mean(length_mm, na.rm = T)),
+                   MaxFL = max(length_mm, na.rm = T))
 
 #Specific lake-species combos where at least 30% of the fish could potentially be natural recruits
 NR_lakes = NR_sum%>%
   dplyr::group_by(region, gazetted_name, WBID,species_code)%>%
-  dplyr::reframe(pNR = round((mean(p)+p[year == max(year)])/2,2), N = sum(N))%>%
+  dplyr::reframe(pNR = round((mean(pNR)+pNR[year == max(year)])/2,2), N = sum(N))%>%
   dplyr::filter(pNR>0.29)%>%
   dplyr::ungroup()
 
@@ -140,7 +154,10 @@ Biological <- Biological%>%
 
 
 #Summarize lake species composition information
-Cap_Spp = vwCollectCount%>%mutate(year = lubridate::year(as.Date(end_dt)))%>%dplyr::select( WBID, year, species_code)%>%unique()
+Cap_Spp = vwCollectCount%>%
+  dplyr::mutate(year = lubridate::year(as.Date(end_dt)))%>%
+  dplyr::select( WBID, year, species_code)%>%
+  unique()
 
 Ind_Spp = vwIndividualFish%>%dplyr::select(WBID, year, species_code)%>%unique()
 

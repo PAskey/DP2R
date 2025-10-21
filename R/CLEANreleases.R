@@ -29,6 +29,7 @@ CLEANreleases <- function(){
   if(!exists("vwIndividualFish")){DP2R::DP2R(Tables = "vwIndividualFish")}
 
   #Step 1. Clean and standardize release data
+  #remove NA text instead of true NA form Rleases table
 
   #INclude age at release when it is a straight forward calculation
   #In "case, when" statement, later statements do not replace earlier, so go from specific to general. Basically start with the exceptions
@@ -150,41 +151,72 @@ CLEANreleases <- function(){
   #Step 5. Link individual fish back to their stocking records. If they are aged, the we can narrow down to release event(s) in one year to one lake.
 
 
-  aged_in_lake = Rel_sampled%>%
-    dplyr::group_by(!!!rlang::syms(c("Sample_Year",setdiff(group_cols, c("year","sby_code","cur_life_stage_code", "SprFall","Strain","ploidy")))))%>%
+  aged_in_lake <- Rel_sampled %>%
+    dplyr::group_by(!!!rlang::syms(c("Sample_Year", setdiff(group_cols, c("year","sby_code","cur_life_stage_code","SprFall","Strain","ploidy"))))) %>%
     dplyr::summarise(
-      sby_rel = paste0((unique(sby_code)),collapse = ','),
-      Strain_rel = paste0((unique(Strain)),collapse = ','),
-      Geno_rel = paste0((unique(ploidy)),collapse = ','),
-      AF = all(grepl("F",ploidy)),
-      Sterile = all(grepl("3",ploidy)),
-      LS_rel = paste0((unique(cur_life_stage_code)),collapse = ','),
-      wt_rel = round(sum(.data$g_size*.data$Quantity)/sum(.data$Quantity),1),
+      sby_rel    = dplyr::na_if(stringr::str_c(unique(na.omit(sby_code)),             collapse=","), ""),
+      Strain_rel = dplyr::na_if(stringr::str_c(unique(na.omit(Strain)),               collapse=","), ""),
+      Geno_rel   = dplyr::na_if(stringr::str_c(unique(na.omit(ploidy)),               collapse=","), ""),
+      LS_rel     = dplyr::na_if(stringr::str_c(unique(na.omit(cur_life_stage_code)),  collapse=","), ""),
+      AF = all(grepl("F", ploidy)),
+      Sterile = all(grepl("3", ploidy)),
+      wt_rel = round(sum(.data$g_size*.data$Quantity)/sum(.data$Quantity), 1),
       N_ha_rel = sum(Quantity_ha),
-      avg_rel_date = as.Date(mean(rel_Date)))%>%
-    dplyr::mutate(Poss_Age = age)%>%
-    dplyr::ungroup()
+      avg_rel_date = as.Date(mean(rel_Date)),
+      .groups = "drop"
+    ) %>%
+    dplyr::mutate(Poss_Age = age)
 
   #If they are not aged, then in most cases there are multiple stocking events to a given lake that could have resulted in the sampled fish. Unless it had a uniquely identifiable clip.
 
   #The second block builds off of the age-in-lake instead of Rel_sampled, so that the binning of N_ha_rel across strains is complete and not confounded as much across years..
-  unaged_in_lake = aged_in_lake%>%
-    dplyr::group_by(!!!rlang::syms(c("Sample_Year",setdiff(group_cols, c("year","sby_code","age","cur_life_stage_code", "SprFall", "Strain","ploidy")))))%>%
+
+  #This controls for not creating text NA values when collapsing lists.
+  split_collapse <- function(x) {
+    v <- unique(trimws(unlist(strsplit(x, ",", fixed = TRUE))))
+    v <- v[!is.na(v) & v != ""]
+    dplyr::na_if(stringr::str_c(v, collapse=","), "")
+  }
+
+  unaged_in_lake <- aged_in_lake %>%
+    dplyr::group_by(!!!rlang::syms(c("Sample_Year", setdiff(group_cols, c("year","sby_code","age","cur_life_stage_code","SprFall","Strain","ploidy"))))) %>%
     dplyr::summarise(
-      sby_rel = paste0(unique(sby_rel),collapse = ','),
-      Strain_rel = paste0(unique(unlist(strsplit(Strain_rel, ","))),collapse = ','),
-      Geno_rel = paste0(unique(unlist(strsplit(Geno_rel, ","))),collapse = ','),
+      sby_rel    = split_collapse(sby_rel),
+      Strain_rel = split_collapse(Strain_rel),
+      Geno_rel   = split_collapse(Geno_rel),
       AF = all(AF),
       Sterile = all(Sterile),
-      LS_rel = paste0(unique(unlist(strsplit(LS_rel, ","))),collapse = ','),
-      wt_rel = round(dplyr::if_else(dplyr::n()==1|(sd(wt_rel)/mean(wt_rel))<0.5, mean(wt_rel),NA),1),
-      N_ha_rel = round(dplyr::if_else(dplyr::n()==1|(sd(N_ha_rel)/mean(N_ha_rel))<0.15,mean(N_ha_rel),NA),0),
+      LS_rel     = split_collapse(LS_rel),
+      wt_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(wt_rel)/mean(wt_rel)) < 0.5,  mean(wt_rel), NA_real_), 1),
+      N_ha_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(N_ha_rel)/mean(N_ha_rel)) < 0.15, mean(N_ha_rel), NA_real_), 0),
       avg_rel_date = as.Date(mean(avg_rel_date)),
-      Poss_Age = paste0(sort(unique(age)),collapse = ',')
-    )%>%
-    dplyr::mutate(age = NA)%>%#This is for vwIndividualFish records with age == NA
+      Poss_Age = {
+        v <- sort(unique(age)); v <- v[!is.na(v)]
+        dplyr::na_if(stringr::str_c(v, collapse=","), "")
+      },
+      .groups = "drop"
+    ) %>%
+    dplyr::mutate(age = NA_integer_)
+
+
+
+#  unaged_in_lake = aged_in_lake%>%
+#   dplyr::group_by(!!!rlang::syms(c("Sample_Year",setdiff(group_cols, c("year","sby_code","age","cur_life_stage_code", "SprFall", "Strain","ploidy")))))%>%
+#    dplyr::summarise(
+#      sby_rel = paste0(unique(sby_rel),collapse = ','),
+#      Strain_rel = paste0(unique(unlist(strsplit(Strain_rel, ","))),collapse = ','),
+#      Geno_rel = paste0(unique(unlist(strsplit(Geno_rel, ","))),collapse = ','),
+#      AF = all(AF),
+#      Sterile = all(Sterile),
+#      LS_rel = paste0(unique(unlist(strsplit(LS_rel, ","))),collapse = ','),
+#      wt_rel = round(dplyr::if_else(dplyr::n()==1|(sd(wt_rel)/mean(wt_rel))<0.5, mean(wt_rel),NA),1),
+#      N_ha_rel = round(dplyr::if_else(dplyr::n()==1|(sd(N_ha_rel)/mean(N_ha_rel))<0.15,mean(N_ha_rel),NA),0),
+#      avg_rel_date = as.Date(mean(avg_rel_date)),
+#      Poss_Age = paste0(sort(unique(age)),collapse = ',')
+#    )%>%
+#    dplyr::mutate(age = NA)%>%#This is for vwIndividualFish records with age == NA
     #dplyr::mutate(age = as.integer(dplyr::if_else(grepl(",", Poss_Age),NA,Poss_Age)))%>%
-    dplyr::ungroup()
+#    dplyr::ungroup()
 
 
 
@@ -196,6 +228,8 @@ CLEANreleases <- function(){
     dplyr::mutate(Lk_yr = paste0(WBID,"_",year))%>%
     tidyr::replace_na(.,list(Stable_yrs = 0))%>%
     dplyr::select(-c("region","gazetted_name"))
+
+
 
   Releases <<-Releases#All releases in database cleaned and standardized
   Rel_sampled <<-Rel_sampled#Releases associated with sampled lakes in database cleaned and standardized

@@ -24,7 +24,7 @@
 
 
 DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species"),
-                 exclude_types = c("geography", "varbinary"),
+                 exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv) {
 
 
@@ -55,29 +55,38 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
                paste(invalid_tables, collapse = ", ")))
   }
 
+  # FIXED helper: schema-qualified, case-insensitive, excludes nvarchar(max) + geography, etc.
+  fetch_data_excluding_types <- function(conn, table_name,
+                                         exclude_types = c("geography","varbinary","ntext")) {
+    # 1) include CHARACTER_MAXIMUM_LENGTH in the metadata
+    col_info <- DBI::dbGetQuery(conn, sprintf("
+    SELECT COLUMN_NAME AS name,
+           DATA_TYPE   AS type_name,
+           CHARACTER_MAXIMUM_LENGTH AS column_size
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = '%s'
+    ORDER BY ORDINAL_POSITION", table_name))
 
-  fetch_data_excluding_types <- function(conn, table_name, exclude_types) {
-    # Get column information
-    col_info <- DBI::dbGetQuery(conn,
-                                paste0("SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'"))
+    tp  <- tolower(col_info$type_name)
+    len <- col_info$column_size
 
-    # Filter out columns of specified data types
-    cols_to_include <- col_info$COLUMN_NAME[
-      !col_info$DATA_TYPE %in% exclude_types
-      ]
+    # 2) keep columns NOT in excluded types (case-insensitive)
+    not_excluded_type <- !tp %in% tolower(exclude_types)
 
-    # Wrap column names in brackets to handle reserved keywords
-    cols_escaped <- paste0("[", cols_to_include, "]")
+    # 3) drop only (MAX) for varchar/nvarchar/varbinary (length == -1)
+    is_max_strbin <- tp %in% c("varchar","nvarchar","varbinary") & !is.na(len) & len == -1
 
-    # Construct the SQL query
-    cols_string <- paste(cols_escaped, collapse = ", ")
-    query <- paste0("SELECT ", cols_string, " FROM ", table_name)
+    keep <- not_excluded_type & !is_max_strbin
 
-    # Execute the query and return the results
-    DBI::dbGetQuery(conn, query)
+    cols_to_include <- col_info$name[keep]
+    if (!length(cols_to_include)) stop("After exclusions, no columns remain to select.")
 
+    select_list <- paste(DBI::dbQuoteIdentifier(conn, cols_to_include), collapse = ", ")
+    from_id     <- DBI::dbQuoteIdentifier(conn, DBI::Id(schema = "dbo", table = table_name))
+    sql         <- sprintf("SELECT %s FROM %s", select_list, from_id)
+
+    DBI::dbGetQuery(conn, sql)
   }
-
 
 
   #Rename some columns to shorter, standard descriptors if present in table

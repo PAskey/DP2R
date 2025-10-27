@@ -70,7 +70,8 @@ CLEANreleases <- function(){
       rel_Date = mean(as.Date(.data$rel_Date,
                               format = "%Y-%m-%d"), na.rm = TRUE),
       g_size = round(sum(Quantity*g_size)/sum(Quantity),1),
-      Quantity = sum(Quantity)
+      Quantity = sum(Quantity),
+      Biomass_kg = sum(Weight)
     )%>%
     dplyr::ungroup()
 
@@ -81,7 +82,7 @@ CLEANreleases <- function(){
     dplyr::inner_join(dplyr::select(vwWaterbodyLake,WBID, area_ha),by = "WBID")%>%
     dplyr::mutate(SAR_cat = SAR_cat(g_size),
                   Quantity_ha = round(Quantity/area_ha,0),
-                  Biom_ha = round(Quantity_ha*g_size/1000,1))%>%
+                  Biom_ha = round(Biomass_kg/area_ha,2))%>%
     dplyr::ungroup()
 
   ##Add in a variable to document how many years the current stocking prescription has been stable (same as previous years)

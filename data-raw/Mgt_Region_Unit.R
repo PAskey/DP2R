@@ -1,4 +1,4 @@
-#Functions and code to map lakes to wildlife management units or other atributes
+#Functions and code to map lakes to wildlife management units or other attributes
 
 # ---- Packages ----
 library(bcdata)
@@ -76,17 +76,20 @@ wmu_from_watershed_code <- function(watershed_code, wmu = NULL, watersheds = NUL
 
 # ---- Data preparation ----
 fwa_lakes <- get_fwa_lakes()
-wmu <- get_wmu()
-DP2R(Tables = "vwWaterbodyLake")
+bc_wmu <- get_wmu()
+DP2R::DP2R(Tables = c("vwWaterbodyLake"))
+Waterbody = Waterbody%>%filter(waterbody_type == "LK")
 
 # Reduce down to lakes in DataPond and select minimal useful columns
 lakes <- fwa_lakes |>
-  dplyr::filter(WATERBODY_KEY_GROUP_CODE_50K %in% vwWaterbodyLake$WBID) |>
-  dplyr::select(WATERBODY_POLY_ID, GNIS_NAME_1, GNIS_NAME_2, GNIS_NAME_3, WATERBODY_KEY_GROUP_CODE_50K, geometry) |>
-  dplyr::rename(WBID = WATERBODY_KEY_GROUP_CODE_50K)
+  dplyr::filter((str_to_upper(GNIS_NAME_1) %in% vwWaterbodyLake$gazetted_name)|(WATERBODY_KEY_GROUP_CODE_50K%in%vwWaterbodyLake$WBID)) |>
+  dplyr::select(WATERBODY_POLY_ID, GNIS_NAME_1, GNIS_NAME_2, WATERBODY_KEY_GROUP_CODE_50K, geometry) |>
+  dplyr::rename(gazetted_name = GNIS_NAME_1,
+                alias = GNIS_NAME_2,
+                WBID = WATERBODY_KEY_GROUP_CODE_50K)
 
 #Rename to match other tables
-wmu <- wmu |>
+wmu <- bc_wmu |>
   dplyr::select(WILDLIFE_MGMT_UNIT_ID, REGION_RESPONSIBLE_ID, REGION_RESPONSIBLE_NAME, OBJECTID, geometry) |>
   dplyr::rename(
     Management_Unit = WILDLIFE_MGMT_UNIT_ID,
@@ -100,12 +103,48 @@ Mgt_Region_Unit <- wmu_from_waterbody_id(
   lakes = lakes
 )
 
+# 1) Keys already present in Mgt_Region_Unit (by name+region)
+mru1 <- Mgt_Region_Unit %>%
+  mutate(name_key = normalize_key(gazetted_name),
+         WBID = as.character(WBID))
+
+used_pairs <- mru1 %>%
+  filter(!is.na(WBID) & WBID != "") %>%
+  distinct(name_key, region, WBID)
+
+# 2) Candidate WBIDs from vwWaterbodyLake (by same keys)
+candidates <- vwWaterbodyLake %>%
+  transmute(name_key = normalize_key(gazetted_name),
+            region   = region,
+            WBID     = as.character(WBID)) %>%
+  filter(!is.na(WBID) & WBID != "") %>%
+  distinct()
+
+# 3) Drop candidates that are already used for that (name_key, region)
+remaining <- anti_join(candidates, used_pairs,
+                       by = c("name_key","region","WBID"))
+
+# 4) Keep ONLY (name_key, region) where exactly ONE WBID remains
+singles <- remaining %>%
+  count(name_key, region, name = "n_left") %>%
+  filter(n_left == 1) %>%
+  left_join(remaining, by = c("name_key","region")) %>%
+  select(name_key, region, WBID_fill = WBID)
+
+# 5) Join this one-to-one map and fill only where WBID is NA/blank
+Mgt_Region_Unit <- mru1 %>%
+  left_join(singles, by = c("name_key","region")) %>%
+  mutate(WBID = if_else(is.na(WBID) | WBID == "", WBID_fill, WBID)) %>%
+  select(-WBID_fill, -name_key)
+
 #which lakes were omitted
-missing = setdiff(vwWaterbodyLake$WBID, Mgt_Region_Unit$WBID)
-stocked = Rel_sum$WBID
-miss_stocked <- intersect(missing, stocked)
-head(miss_stocked)
-length(miss_stocked)
+#missing = setdiff(vwWaterbodyLake$WBID, Mgt_Region_Unit2$WBID)
+
+#DP2R::Releases2R()
+#stocked = unique(Releases$WBID)
+#miss_stocked <- intersect(missing, stocked)
+#missing = vwWaterbodyLake%>%filter(WBID%in%miss_stocked)
+#length(miss_stocked)
 
 
 ## --- 1) Build a per-MU neighbour map (text string) -------------------------

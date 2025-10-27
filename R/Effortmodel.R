@@ -29,10 +29,15 @@ Effortmodel <- function(data = NULL, update_or_fit = "update", model_path  = "da
     start_t <- Sys.time()
 
   if(update_or_fit == "fit"){
-    fit = lme4::glmer.nb(OE ~ 0 + daytype + hour + month + (0 + 1 | lakeview_yr) + (0 + 1 | weather_code), data = data, nAGQ=0, control = lme4::glmerControl(optimizer = "nloptwrap"), na.action = "na.pass")
+    fit = lme4::glmer.nb(OE ~ 0 + daytype + hour + month + (0 + 1 | lakeview_yr) + (0 + 1 | weather_code),
+                         data = data,
+                         nAGQ=0,
+                         control = lme4::glmerControl(optimizer = "nloptwrap"),
+                         na.action = "na.pass")
   }else{
     fit = qs2::qs_read(file = model_path)
-    fit = stats::update(fit, data = data)
+    fit = stats::update(fit,
+                        data = data)
     }
 
   end_t <- Sys.time()

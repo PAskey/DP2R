@@ -32,10 +32,12 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
 
   if (update.model) {
-    DP2R::Effortmodel(data = data)  # Update the model with new data if required
-  } else {
-    fit = qs2::qs_read(model_path)  # Load the model from the specified path if not
+    DP2R::Effortmodel(data = data)  # Update the model with new data if required. Autosaved to model_path location
   }
+
+
+    fit = qs2::qs_read(model_path)  # Load the model from the specified path if not
+
 
   ### 2. Load a Prediction Table for Months and Day Types and match to the data set being predicted(e.g. open water is usually May 1st to Oct 31st)
  data(Pred_vars)

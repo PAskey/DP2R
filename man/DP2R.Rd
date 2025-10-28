@@ -7,7 +7,7 @@
 DP2R(
   Tables = c("vwIndividualFish", "vwCollectCount", "vwFishCollection", "vwWaterbodyLake",
     "Species"),
-  exclude_types = c("geography", "varbinary"),
+  exclude_types = c("geography", "varbinary", "ntext"),
   envir = .GlobalEnv
 )
 }

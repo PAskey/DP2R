@@ -16,8 +16,8 @@ SPDTplot(
 }
 \arguments{
 \item{Metric}{a character string that describes the performance metric (dependent variable) to be plotted.This must be entered for function to work.
-The specific options that can be stated are: 
-"survival" (standardized relative catch rate of one contrast group to another), 
+The specific options that can be stated are:
+"survival" (standardized relative catch rate of one contrast group to another),
 A series of plots that summarize all age classes captured in a given sampling event.
 The plots show changes in size, numbers or maturation over time if multiple age classes were captured.
 
@@ -27,7 +27,7 @@ The plots show changes in size, numbers or maturation over time if multiple age 
 
 "age_freq" (same data as above, but columns instead of points),
 
-"mu_growth_FL" (average length per age), 
+"mu_growth_FL" (average length per age),
 
 "mu_growth_wt" (average weight per age),
 
@@ -37,7 +37,7 @@ The plots show changes in size, numbers or maturation over time if multiple age 
 
 "maturation" (the proportion mature per age),
 
-"maturation_by_sex" (partitions data used in plot above by sex) 
+"maturation_by_sex" (partitions data used in plot above by sex)
 
 A series of plots looking at the overall size distribution of the entire population in a lake (all age classes)
 
@@ -45,7 +45,7 @@ A series of plots looking at the overall size distribution of the entire populat
 
 "FL_density"(fork-length frequencies per lake-sample session as smoothed densities),
 
-"FL_hist"(fork-length frequencies per lake-sample session as histograms), 
+"FL_hist"(fork-length frequencies per lake-sample session as histograms),
 
 In all cases the data will be grouped by the "Contrast" stated during the SPDT data call.}
 

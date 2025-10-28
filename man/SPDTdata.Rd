@@ -7,7 +7,7 @@
 SPDTdata(
   Spp = NULL,
   Contrast = NULL,
-  Controls = c("species_code", "Geno_rel", "Strain_rel", "SAR_cat"),
+  drop_controls = NULL,
   Strains = NULL,
   Genotypes = NULL,
   filters = NULL,
@@ -17,10 +17,10 @@ SPDTdata(
 \arguments{
 \item{Spp}{an optional character string or character vector for BC species code (e.g. "RB" or c("KO", "EB"), etc.). This will filter data to only that species.}
 
-\item{Contrast}{a required character string describing the experimental contrast, which must be a field in the SPDTdata (e.g. "species_code", "Strain", "SAR_cat", "Genotype" are the 3 possibilities now).
+\item{Contrast}{a required character string describing the experimental contrast, which must be a field in the SPDTdata (e.g. "species_code", "Strain_rel", "SAR_cat", "Geno_rel" are the 3 possibilities now).
 Entering a value for contrast will filter to lake years that had fish present from a co-stocking event of groups varying in your contrast variable.}
 
-\item{Controls}{an optional character vector to assign controls (grouping variables) that must be met to compare the "Contrast" groups. Default is the full list of potential contrasts. Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficulat to control for size-at-release SAR_cat becasue they are released at differnet stage-sizes)}
+\item{drop_controls}{an optional character string or vector to drop covariates from the potenital Contrast list that would be used as controls when filtering and grouping data by the selected Contrast. Default is the full list of potential contrasts are usd as controls (i.e. none are dropped). Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficult to control for size-at-release SAR_cat because they are released at different stage-sizes)}
 
 \item{Strains}{an optional character string or character vector describing the strain code (SPDTdata format e.g. "RB" for Rainbow Trout) for source population. This will filter to only those strains listed}
 

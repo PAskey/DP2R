@@ -69,8 +69,8 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
   #If no specific contrast is given in SPDT data, then make defaults for colouring and shape schemes
 
   if (is.null(Contrast)){
-    Contrast = "Genotype"
-    controls = c("Strain")
+    Contrast = "Geno_rel"
+    controls = c("Strain_rel")
   }
 
 
@@ -198,7 +198,7 @@ if (Metric == "age_freq"){
 
 if (Metric == "maturation"){
   p = pg +
-    ggplot2::geom_point(ggplot2::aes(x = .data$Dec.Age, y = .data$p_mat), size = 4, alpha = 0.7, position = ggplot2::position_dodge(width = 0.2))+
+    ggplot2::geom_point(ggplot2::aes(x = .data$Dec.Age, y = .data$p_mat, size = log(.data$N)), alpha = 0.7, position = ggplot2::position_dodge(width = 0.2))+
     #ggplot2::facet_wrap(~get(controls[1]))+
     ggplot2::facet_wrap(~.data$locale_name)+
     ggplot2::ylim(0,1)+
@@ -334,33 +334,35 @@ if (Metric == "wt_hist"){
   if (Metric == "maturation_by_sex"){
     if(min_N<5){warning("Min_N should be set >=5 for maturation plots")}
     mat_df = plot_idf%>%
-              dplyr::filter(Maturity != 'UNK', !is.na(Sex), !grepl(",",Genotype))%>%
-              dplyr::group_by(locale_name, WBID, year, Species, Strain, Genotype, age, Dec.Age, Sex, SAR_cat)%>%
+              dplyr::filter(maturity != 'UNK', !is.na(sex), !grepl(",",Geno_rel))%>%
+              dplyr::group_by(locale_name, WBID, year, species_code, Strain_rel, Geno_rel, age, Dec.Age, sex, SAR_cat)%>%
               dplyr::summarize(N = dplyr::n(),
-                               Nkn = sum(.data$Maturity != 'UNK', na.rm = TRUE),
-                               Nm = sum(.data$Maturity != 'IM'& .data$Maturity != 'UNK', na.rm = TRUE),
-                               p_mat = sum(.data$Maturity != 'IM'& .data$Maturity != 'UNK', na.rm = TRUE)/sum(.data$Maturity != 'UNK', na.rm = TRUE))%>%
+                               Nkn = sum(.data$maturity != 'UNK', na.rm = TRUE),
+                               Nm = sum(.data$maturity != 'IM'& .data$maturity != 'UNK', na.rm = TRUE),
+                               p_mat = sum(.data$maturity != 'IM'& .data$maturity != 'UNK', na.rm = TRUE)/sum(.data$maturity != 'UNK', na.rm = TRUE))%>%
               dplyr::filter(N>=min_N)%>%
               dplyr::ungroup()
 
 
     p = ggplot2::ggplot(data = mat_df,
                         ggplot2::aes(x = .data$Dec.Age, y = .data$p_mat,
-                                     fill = get(Contrast), colour = get(Contrast)))+
-      ggplot2::geom_point(size = 4, alpha = 0.7, position = ggplot2::position_jitterdodge(  jitter.width = .1,
+                                     fill = get(Contrast),
+                                     colour = get(Contrast)))+
+      ggplot2::geom_point(aes(size = log(.data$N)),alpha = 0.7, position = ggplot2::position_jitterdodge(  jitter.width = .1,
                                                                                             jitter.height = 0.02,
                                                                                             dodge.width = 0.3, seed = 1))+
       ggplot2::scale_shape_manual(values = 21)+
       viridis::scale_fill_viridis(discrete = TRUE)+
       viridis::scale_colour_viridis(discrete = TRUE)+
-      ggplot2::facet_grid(.data$Sex~.data$Genotype)+
+      ggplot2::facet_grid(.data$sex~.data$Geno_rel)+
       ggplot2::ylim(0,1)+
       ggplot2::scale_x_continuous(breaks = seq(min(mat_df$age, na.rm = T), max(mat_df$age, na.rm = T), by = 1))+
       ggplot2::geom_smooth(span = 1, se = FALSE, ggplot2::aes(colour = get(Contrast)), method = "glm", method.args = list(family = "binomial"))+
       ggplot2::theme_bw()+
       ggplot2::guides(fill=ggplot2::guide_legend(override.aes=list(shape=21)))+
       ggplot2::labs(x = "Age", y = "Proportion mature or maturing",
-                    shape = "Sex", fill = Contrast, colour = Contrast)
+                    shape = "Sex", fill = Contrast, colour = Contrast)+
+      ggplot2::guides(size = "none")
   }
 
 

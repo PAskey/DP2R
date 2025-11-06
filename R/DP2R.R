@@ -10,6 +10,9 @@
 #' @param DB A text string of "DataPond" (default production data) or "DataPond_STAGE" which is staged data to be reviewed before acceptance into production.
 #' @param Tables A text vector of DataPond tables names to be pulled into the R environment. If unsure of the names of all tables, establish a DataPond connection (conn) and then run: 'DBI::dbListTables(conn)' or review connections tab in RStudio. The default tables are the 'views' (preceded by vw), which would typically be used in analyses of gillnet assessment data.
 #' @param exclude_types A text string or vector describing data types to omit from the data set. The default is "geography" because R does not handle that datatype. That means any columns with point data in the geography datatype are removed from the dataset (there is still lat-long data that can be used).
+#' @param envir Environment to assign results into (default: .GlobalEnv).
+#' @param as.raw Logical; if TRUE, keep data in raw DB format (only excluded-type filtering is applied; no renaming/coalescing/aggregation). Default: FALSE.
+#' @examples
 #' @examples
 #'   conn <- DBI::dbConnect(drv = odbc::odbc(),
 #'   Driver = 'SQL Server',
@@ -25,7 +28,8 @@
 
 DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species"),
                  exclude_types = c("geography", "varbinary", "ntext"),
-                 envir = .GlobalEnv) {
+                 envir = .GlobalEnv,
+                 as.raw = FALSE) {
 
 
   if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
@@ -154,7 +158,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
       error = function(e) conditionMessage(e))
 
     # Apply renaming if the data is valid (not NULL or error message)
-    if (!is.null(ret) && is.data.frame(ret)) {
+    if (!is.null(ret) && is.data.frame(ret) && !as.raw) {
       ret <- rename_columns_if_present(ret)
       ret <- remove_na_wbid(ret)  # Remove rows with NA in WBID
       # If the current table is vwWaterbodyLake, apply aggregation
@@ -163,7 +167,6 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
 
       }
     }
-
 
     # Assign the result to the specified environment if provided
     if (!is.null(envir)) assign(tb, ret, envir = envir)

@@ -7,7 +7,7 @@
 Effortmodel(
   data = NULL,
   update_or_fit = "update",
-  model_path = "data/DP2R_Effort_Model.qs2",
+  model_path = "data-raw/DP2R_Effort_Model.qs2",
   add_camX = TRUE
 )
 }

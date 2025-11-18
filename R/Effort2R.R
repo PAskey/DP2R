@@ -25,13 +25,7 @@
 Effort2R <- function() {
 
 
-  if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
-  conn <- DBI::dbConnect(drv = odbc::odbc(),
-                         Driver = 'SQL Server'',
-                         server = 'tcp:gofishbc.database.windows.net,1433',
-                         database = 'DataPond',
-                         uid = uid,
-                         pwd = pwd")}
+  if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object.")}
 
   #In future bring in vwEffort as well
   #DP2R::DP2R(Tables = c("vwWaterbodyLake"))
@@ -50,7 +44,7 @@ Effort2R <- function() {
   #  hour = lubridate::hour(as.POSIXct(Edata$assessed_dt, format = "%Y-%m-%d %H:%M:%OS", tz = "UTC"))
   #)]
 
-  Edata_dt = DP2R::EffortClean()
+  Edata_dt = DP2R:::EffortClean()
 
 
   # Ensure DayTypes is a data.table object

@@ -5,7 +5,7 @@
 #' @title EffortClean
 #' @name EffortClean
 #' @keywords SPDT; DataPond
-#' @export
+#'
 #'
 #'
 #' @importFrom magrittr "%>%"
@@ -21,9 +21,6 @@ EffortClean <- function() {
 
   ###Cleaning
   #Step 1: Address some small scale specific issues in the data. These could probably be cleaned by hand.
-
-  #An erroneous repeat of May 4 observations in the wrong month. Delete as correct observations are already there.
-  Edata <- Edata[Edata$date != "2008-03-04", ]
 
   #Yellow Lake camera data has 'open' for one camera when ground counts verify covered. The data also looks suspect that one camera has been misnamed later in season (same date and hour, with different counts). April is a problem for inconsistent ice-cover and like camera mis-namming, also data recorded in boats column (and supposedly open) when clear a covered period
   #### Edata[Edata$WBID == "01202SIML"&Edata$year == 2013&Edata$month %in%c(1:3),"ice_cover_code"]<-"COVERED"
@@ -99,14 +96,6 @@ N_before_clean = nrow(Edata_dt)
   # 4. Identify rows to be removed: all count variables NA and keyword found in the comment
   remove_NAs <- Edata_dt[allNA & grepl(pattern, tolower(comment))]
   remove_night <- Edata_dt[all0 & hour %in% c(0:5,22:24) & grepl(pattern, tolower(comment))|hour %in% c(0:4,23:24)]
-  #Visibility has now been filtered form main data set.
-  #remove_vis <- Edata_dt[percent_visibility <= 50]
-
-  #test_vis = Edata_dt%>%filter(method == "CAM")%>%mutate(vis = percent_visibility>50)%>%
-  #  group_by(WBID, gazetted_name, year, method, view_location_name, vis)%>%
-  #  summarize(N = n())%>%
-  #  pivot_wider(names_from = vis, values_from = N)%>%
-  #  mutate(p = sum(FALSE,na.rm = T)/sum(TRUE,NA,na.rm = T))
 
   # Combine all data to be removed into a vector of unique fishing_effort_id
   removals <- unique(c(remove_NAs$fishing_effort_id, remove_night$fishing_effort_id))
@@ -120,38 +109,10 @@ N_before_clean = nrow(Edata_dt)
   Edata_dt <- Edata_dt[, c("allNA", "all0") := NULL]
 
 
-
-#vwEffort_names = c("region", "assess_event_id", "assess_event_name", "WBID", "gazetted_name", "method", "assessed_dt", "weather_code", "ice_cover_code", "percent_visibility", "percent_lake_seen", "num_shore_ice", "num_spv", "num_boat", "num_ice_tent", "view_location_name", "comment", "year")
-
-# Function to reorder columns based on a specified order
-#reorder_columns_dt <- function(dt, column_order) {
-  # Match only columns present in the data.table to the specified order
-#  matching_columns <- column_order[column_order %in% base::names(dt)]
-#  extra_columns <- setdiff(base::names(dt), matching_columns)
-
-  # Update column order directly in the data.table
-#  data.table::setcolorder(dt, c(matching_columns, extra_columns))
-#}
-
-
-# Apply to data.table
-#reorder_columns_dt(Edata_dt, vwEffort_names)
-
 # Add to the environment
 return(Edata_dt)
 #keepers = c("Edata_dt", "conn")
 #rm(list = setdiff(ls(), keepers))
 gc()
-  ###What about lakes where they clearly just went off of the 24 clock? We should be able to tell this by the presence of any counts in the period from 12am to 3am.If a assessment_id has any counts in that period, and there are no records of times between 1200 and 1500. However there was no evidence that useful data had been allocated to the night. SO recommend just removing any data from 11pm to 4 am.
-
-#  Edata_summary <- Edata_dt[, .(
-#    CNTnight = sum(hour %in% c(0:4,23:24)),           # Count of night
-#    CNTaft = sum(hour %in% c(11:16)),            # Count of matching day hours that would be misinterpretted
-#    sum_counts_night = sum(rowSums(.SD[hour %in% c(0:4,23:24), .SDcols = vcols],na.rm = T)), # Sum for hours between 0 and 3
-#    sum_counts_aft = sum(rowSums(.SD[hour %in% c(11:16), .SDcols = vcols],na.rm = T))  # Sum for hours between 12 and 15
-#  ), by = assess_event_id, .SDcols = vcols]
-
-
-
 
 }

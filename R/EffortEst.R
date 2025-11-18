@@ -18,7 +18,7 @@
 #' @importFrom magrittr "%>%"
 
 
-EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, model_path = "data/DP2R_Effort_Model.qs2", data_save = TRUE) {
+EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, model_path = "data-raw/DP2R_Effort_Model.qs2") {
 
   ### 1. Load and/or Update the data and statistical model
 
@@ -157,7 +157,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     dplyr::select(c(WBID:N,Angler_days))%>%
     tidyr::pivot_wider(names_from = method, values_from = c(Angler_days))%>%
     dplyr::rowwise()%>%
-    dplyr::mutate(Exp = if_else(CAM > 0, max(1, max(AIR, GRD, na.rm = TRUE) / CAM), NA_real_))%>%
+    dplyr::mutate(Exp = dplyr::if_else(CAM > 0, max(1, max(AIR, GRD, na.rm = TRUE) / CAM), NA_real_))%>%
 
     #Step 3. When more than one year or verifcation method is used for same camera view take a weighted mean
     dplyr::group_by(WBID, view_location_name)%>%
@@ -183,31 +183,12 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
   # Define column order
   cols <- c("region", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
 
-  shinydata = sum.pred%>%
+  EffortEsts = sum.pred%>%
     dplyr::mutate(year = as.integer(as.character(year)))%>%#back to number format for shiny functionality
     dplyr::select(tidyr::all_of(cols))%>%
     dplyr::rename(CAM_Exp=Exp)
 
-  #Lake by lake summary of effort data
-  lakesum <- shinydata %>%
-    dplyr::group_by(region, WBID, gazetted_name) %>%
-    dplyr::summarise(N_years = length(unique(year)),
-                     min_year = min(year),
-                     max_year = max(year),
-                     Methods = paste0(unique(method),collapse = ","),
-                     mean_AD = round(mean(Angler_days, na.rm = TRUE),1),
-                     marker_size = max(mean_AD,1, na.rm = TRUE),
-                     .groups = "drop" )%>%
-    dplyr::mutate(AD_percentile = 100*round(dplyr::min_rank(mean_AD)/dplyr::n(),2))
-
-
-
-  lakesum = dplyr::left_join(lakesum, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
-
-
-if(data_save){
-save(shinydata, file = "data/shinydata.rda")
-save(lakesum, file = "data/lakesum.rda")
-}
+  EffortEsts<<-EffortEsts
+Lakes<<-Lakes
 
 }

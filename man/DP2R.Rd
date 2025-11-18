@@ -8,13 +8,18 @@ DP2R(
   Tables = c("vwIndividualFish", "vwCollectCount", "vwFishCollection", "vwWaterbodyLake",
     "Species"),
   exclude_types = c("geography", "varbinary", "ntext"),
-  envir = .GlobalEnv
+  envir = .GlobalEnv,
+  as.raw = FALSE
 )
 }
 \arguments{
 \item{Tables}{A text vector of DataPond tables names to be pulled into the R environment. If unsure of the names of all tables, establish a DataPond connection (conn) and then run: 'DBI::dbListTables(conn)' or review connections tab in RStudio. The default tables are the 'views' (preceded by vw), which would typically be used in analyses of gillnet assessment data.}
 
 \item{exclude_types}{A text string or vector describing data types to omit from the data set. The default is "geography" because R does not handle that datatype. That means any columns with point data in the geography datatype are removed from the dataset (there is still lat-long data that can be used).}
+
+\item{envir}{Environment to assign results into (default: .GlobalEnv).}
+
+\item{as.raw}{Logical; if TRUE, keep data in raw DB format (only excluded-type filtering is applied; no renaming/coalescing/aggregation). Default: FALSE.}
 
 \item{DB}{A text string of "DataPond" (default production data) or "DataPond_STAGE" which is staged data to be reviewed before acceptance into production.}
 }

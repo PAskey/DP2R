@@ -19,7 +19,7 @@
 #' @importFrom magrittr "%>%"
 
 
-Effortmodel <- function(data = NULL, update_or_fit = "update", model_path  = "data/DP2R_Effort_Model.qs2", add_camX = TRUE) {
+Effortmodel <- function(data = NULL, update_or_fit = "update", model_path  = "data-raw/DP2R_Effort_Model.qs2", add_camX = TRUE) {
 
   # Ensure the provided data is valid
   if (missing(data) || is.null(data)) {

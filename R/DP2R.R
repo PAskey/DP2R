@@ -13,7 +13,6 @@
 #' @param envir Environment to assign results into (default: .GlobalEnv).
 #' @param as.raw Logical; if TRUE, keep data in raw DB format (only excluded-type filtering is applied; no renaming/coalescing/aggregation). Default: FALSE.
 #' @examples
-#' @examples
 #'   conn <- DBI::dbConnect(drv = odbc::odbc(),
 #'   Driver = 'SQL Server',
 #'   server = 'tcp:gofishbc.database.windows.net,1433',

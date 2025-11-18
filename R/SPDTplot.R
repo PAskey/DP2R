@@ -156,17 +156,19 @@ pg = ggplot2::ggplot(data = plot_gdf, ggplot2::aes(x = .data$Dec.Age, fill = get
     viridis::scale_fill_viridis(discrete = TRUE)+
     viridis::scale_colour_viridis(discrete = TRUE)+
     ggplot2::scale_y_continuous(limits = c(0,NA),expand=ggplot2::expansion(add=c(0,10))) +
-    ggplot2::facet_wrap(~.data$locale_name+.data$Year_Season, scales = "free_y")+
+    ggplot2::facet_wrap(~.data$locale_name+.data$Year_Season, scales = "fixed")+
     ggplot2::scale_x_continuous(breaks = scales::breaks_width(1))+
     ggplot2::labs(x = "Age", fill = Contrast, colour = Contrast, shape = controls[1])+
-    ggplot2::theme_bw()
+    ggplot2::theme_bw()+
+    ggplot2::theme(strip.text = ggplot2::element_text(size = 8, margin = ggplot2::margin(1, 1, 1, 1)))
 
 #Catch plot additions.
 if (Metric == "catch"){
 p = pg +
     ggplot2::geom_point(ggplot2::aes(y = .data$NetXN),size = 3, alpha = 0.6, position = ggplot2::position_dodge(width = 0.2))+
     #ggplot2::scale_y_continuous(trans='log10')+
-    ggplot2::labs(y = "Catch (selectivity adjusted)")
+    ggplot2::labs(y = "Catch (selectivity adjusted)")+
+  ggplot2::facet_wrap(~.data$locale_name+.data$Year_Season, scales = "free_y", ncol = 4)
 }
 
 #Avg growth plot additions.
@@ -218,7 +220,7 @@ pi = ggplot2::ggplot(data = plot_idf, ggplot2::aes(colour = get(Contrast), fill 
   ggplot2::scale_shape_manual(values = rep(21:25, 5))+
   viridis::scale_fill_viridis(discrete = TRUE)+
   viridis::scale_colour_viridis(discrete = TRUE)+
-  ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")+
+  ggplot2::facet_wrap(.data$locale_name~.data$Year_Season)+
   ggplot2::labs(fill = Contrast, colour = Contrast, shape = controls[1])+
   ggplot2::theme_bw()
 
@@ -239,8 +241,8 @@ if(Metric == "condition"){
 p = pi +
   ggplot2::geom_point(ggplot2::aes(x = .data$length_mm, y = .data$weight_g), size = 3, alpha = 0.5)+
   ggplot2::scale_x_log10()+
-  ggplot2::scale_y_log10()+
-  ggplot2::facet_wrap(.data$locale_name~.data$Year_Season)#Don't want scales free so repeated facet_wrap line
+  ggplot2::scale_y_log10()#+
+  #ggplot2::facet_wrap(.data$locale_name~.data$Year_Season)#Don't want scales free so repeated facet_wrap line
 }
 
 
@@ -252,8 +254,8 @@ p = pi +
      ggplot2::labs(x = "Age", y = "Weight (g)", fill = Contrast, colour = Contrast)+
      ggplot2::scale_y_continuous(breaks = scales::breaks_width(200))+#, limits = c(0,NA))+
      ggplot2::scale_x_continuous(breaks = scales::breaks_width(1))+
-     ggplot2::theme_bw()+
-     ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")
+     ggplot2::theme_bw()#+
+     #ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")
  }
 
 if (Metric == "growth_FL"){
@@ -263,8 +265,8 @@ if (Metric == "growth_FL"){
     ggplot2::labs(x = "Age", y = "Fork Length (mm)", fill = Contrast, colour = Contrast)+
     ggplot2::scale_y_continuous(breaks = scales::breaks_width(50))+#, limits = c(100,NA))+
     ggplot2::scale_x_continuous(breaks = scales::breaks_width(1))+
-    ggplot2::theme_bw()+
-    ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")
+    ggplot2::theme_bw()#+
+    #ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")
 }
 
 

@@ -8,8 +8,7 @@ EffortEst(
   data = NULL,
   month_span = c(5:10),
   update.model = FALSE,
-  model_path = "data/DP2R_Effort_Model.qs2",
-  data_save = TRUE
+  model_path = "data-raw/DP2R_Effort_Model.qs2"
 )
 }
 \arguments{

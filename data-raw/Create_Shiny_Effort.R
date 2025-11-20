@@ -2,7 +2,7 @@ setwd("C:/Users/paul.askey/OneDrive - Freshwater Fisheries Society of B.C/FFSBC 
 
 library(DP2R)
 library(dplyr)
-EffortEst()
+EffortEst(update.model = TRUE)
 
 VILQ = read.csv("data-raw/VILQ.csv")
 

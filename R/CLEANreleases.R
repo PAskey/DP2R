@@ -33,18 +33,23 @@ CLEANreleases <- function(){
 
   #INclude age at release when it is a straight forward calculation
   #In "case, when" statement, later statements do not replace earlier, so go from specific to general. Basically start with the exceptions
+
   #Fix pre 2012 Brood year issue for FV
   Releases <- Releases%>%dplyr::mutate(Releases, sby_code = dplyr::if_else(.data$Strain == "FV" & .data$sby_code <=2012 & so_origin_code =="H", .data$sby_code-1,.data$sby_code))
+
+  #Fix non-unique FRY lifestage code
+  Releases$cur_life_stage_code[Releases$cur_life_stage_code == "FF"]<-"FR"
+
 
   Releases <- Releases%>%dplyr::mutate(
     age = dplyr::case_when(
       #there are a few specific cases where we know age for sure just based on the age description, but only a few (some are not accurate)
       .data$g_size > 0 & .data$g_size < 2 ~ 0L,
       .data$sby_code < 1 & .data$cur_life_stage_code =="FG" ~0L,
-      .data$cur_life_stage_code %in% c("EG", "EE", "FF", "FR")& .data$g_size <5 ~ 0L,
+      .data$cur_life_stage_code %in% c("EG", "EE", "FR")& .data$g_size <5 ~ 0L,
       .data$sby_code < 1 & .data$cur_life_stage_code %in% c("YE", "YE+", "FG", "FFG")& .data$g_size >5& .data$g_size <500 ~ 1L,#Only trust YE designation if don't have sby_code
       #Now with Fraser Valleys it gets really confusing. This is NOT correct 100% of the time.
-      .data$stock_strain_loc_name == "FRASER VALLEY" & .data$cur_life_stage_code %in% c("EG", "EE", "FF", "FR")&g_size <10 ~ 0L,
+      .data$stock_strain_loc_name == "FRASER VALLEY" & .data$cur_life_stage_code %in% c("EG", "EE", "FR")&g_size <10 ~ 0L,
       TRUE ~ DP2R::sby2age(.data$species_code, .data$sby_code, .data$year),
     )
   )

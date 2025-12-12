@@ -8,7 +8,7 @@ predict_Millar(
   species,
   classes = 75:650,
   rtype = NULL,
-  meshSizes = NULL,
+  meshSizes_in = NULL,
   theta = NULL,
   rel.power = NULL,
   theta_min_mesh = 1,
@@ -22,7 +22,7 @@ predict_Millar(
 
 \item{rtype}{Optional: Millar curve type; if NULL, taken from best_models.}
 
-\item{meshSizes}{Optional: mesh sizes (mm); if NULL, taken from best_models.}
+\item{meshSizes_in}{Optional: mesh sizes (mm); if NULL, taken from best_models.}
 
 \item{theta}{Optional: parameter vector; if NULL, taken from best_models.}
 

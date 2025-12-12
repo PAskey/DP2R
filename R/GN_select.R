@@ -6,10 +6,10 @@
 #' Using a simple multiplier to correct for selectivity only works with good sample sizes, because 0 * anything = 0.
 #'
 #'
-#' @title GNselect
-#' @name GNselect
+#' @title GN_select
+#' @name GN_select
 #' @keywords SPDT; gillnet; selectivity
-#' @export
+# @export
 #' @param FLengths an integer or vector of fork lengths in mm for which to calculate relative probability of capture by RIC gillnet.
 #' @param Millar_model a TRUE/FALSE to indicate whether Millar model should be used for predictions
 #' @param meshSizes_in a vecotr of mesh sizes in inches. Only applicable to Millar model and defaults to full RIC net
@@ -34,7 +34,7 @@
 #' @importFrom rlang .data
 #'
 
-RICselect<- function(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL){
+GN_select<- function(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL){
 
  if(Millar_model == TRUE){
 
@@ -48,9 +48,9 @@ RICselect<- function(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL){
 
 
   #Use model 5 fit from Gillnet_Selectivity.RMD
-  theta = SPDT::RIC_param$theta
-  rel.power = SPDT::RIC_param$rel.power[match(meshSizes_in, SPDT::RIC_param$RIC_meshes)]
-  rel.power[is.na(rel.power)]<-1#For mesh sizes without data
+  #theta = SPDT::RIC_param$theta
+  #rel.power = SPDT::RIC_param$rel.power[match(meshSizes_in, SPDT::RIC_param$RIC_meshes)]
+  #rel.power[is.na(rel.power)]<-1#For mesh sizes without data
 
   p = predict_Millar(rtype = "bilognorm", classes = FLengths_mm, meshSizes = meshSizes, theta = theta, rel.power = rel.power)
 
@@ -60,7 +60,7 @@ RICselect<- function(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL){
   #p = RIC_param$p_gam%>%dplyr::filter(Length_mm %in% FLengths_mm)%>%dplyr::pull(p)
   #p <- setNames(p, FLengths_mm)
    #  lens = c(100,100, 300, 200, 4000, 100, 200)
-  df = SPDT::RIC_param$p_gam
+  #df = SPDT::RIC_param$p_gam
   #df$p[match(lens, df$Length_mm)]
   p = df$p[match(FLengths_mm, df$Length_mm)]
   #p = df$p[df$Length_mm %in% FLengths_mm]

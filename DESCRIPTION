@@ -1,7 +1,7 @@
 Package: DP2R
 Type: Package
 Title: Bring data from DataPond into the R Environment and analyze
-Version: 0.4.6
+Version: 0.4.7
 Author: PJ Askey
 Maintainer: Paul Askey <Paul.Askey@gofishbc.com>
 Description: This package provides convenience functions to load and wrangle raw data from DataPond into a format convenient for typical fisheries management type analyses in R. 

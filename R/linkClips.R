@@ -49,8 +49,19 @@ Clipsrel = Link_rel%>%
   dplyr::filter(Nclips>0)
 
 #Add "NONE" to aged (or unaged?) fish where there are multiple clips at large but this group is not clipped (so unique)
-Link_rel = Link_rel%>%
-  dplyr::mutate(mark_code = ifelse((is.na(mark_code)& !is.na(sby_rel) & !stringr::str_detect(sby_rel, ",")&(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+#Link_rel = Link_rel%>%
+#  dplyr::mutate(mark_code = ifelse((is.na(mark_code)& !is.na(sby_rel) & !stringr::str_detect(sby_rel, ",")&(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+
+#Update for above when unaged releases area unique product over many years. Also inconsistent use of NA and "NONE" in database, so can duplicate to cover both
+Link_none = Link_rel%>%
+  dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
+                                      !is.na(sby_rel)&
+                                      !if_any(c(Strain_rel, Geno_rel, LS_rel),
+                                              ~ stringr::str_detect(.x, ","))&
+                                      (interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+
+Link_rel = rbind(Link_rel, Link_none)%>%unique()
+
 
 #Clean up NOREC and UNK mark_code entries in lake-years where no clips should be present anyways.
 vwIndividualFish = vwIndividualFish%>%
@@ -174,6 +185,9 @@ Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
 Biological<<-Biological
 NR_sum<<-NR_sum
 Lake_Spp<<-Lake_Spp
+
+Collections = vwFishCollection%>%
+  dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long)
 
 
 

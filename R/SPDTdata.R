@@ -8,16 +8,7 @@
 #'
 #'Several new columns are present. Anything prefixed by "NetX" means that variable has been expanded to account for gillnet selectivity.
 #'SAR if for size-at-release in grams, and SAR_cat has categorized those release sizes.
-#'The code creating categories for the SAR_cat has bigger categories as the size increases and is as follows:
-#'
-#'dplyr::mutate(SAR_cat = dplyr::case_when(SAR<=6 ~ plyr::round_any(SAR,1),
-#'                                         SAR>6&SAR<=14.5 ~ plyr::round_any(SAR,2),
-#'                                         SAR>14.5&SAR<=27.5 ~ plyr::round_any(SAR,5),
-#'                                         SAR>27.5&SAR<65 ~ plyr::round_any(SAR,10),
-#'                                         TRUE ~ plyr::round_any(SAR, 25))
-#' You could create our own categorical system and column if needed
-#'
-#'
+#'The code creating categories for the SAR_cat has bigger categories as the size increases. See ?SAR_cat
 #'
 #' @title SPDTdata
 #' @name SPDTdata
@@ -223,7 +214,9 @@ predf = gdf%>%
     "Lk_yr","WBID","locale_name","year","Season","method","age",
     controls, Contrast   # Contrast is included via Covariates, but spelled out here for clarity
   ))))%>%#, sby_code
-  dplyr::filter(!grepl(",",.data[[Contrast]]), !is.na(N_ha_rel))%>%#remove group that included multiple levels within contrast. Remove fish that do not link to stocking records
+  dplyr::filter(!is.na(.data[[Contrast]]),
+                !grepl(",",.data[[Contrast]]),
+                !is.na(N_ha_rel))%>%#remove group that included multiple levels within contrast. Remove fish that do not link to stocking records
   dplyr::summarize(groups = dplyr::n(),
                    N = sum(N),
                    xN = sum(NetXN),
@@ -237,7 +230,11 @@ predf = gdf%>%
 
 #The distinct categories found in the contrast
 cats = predf%>%
-  dplyr::pull(.data[[Contrast]])%>%unique()%>%sort(decreasing = TRUE)
+  dplyr::pull(.data[[Contrast]])%>%
+  unique()%>%
+  sort(decreasing = TRUE)
+
+cats <- cats[!is.na(cats)]   # remove any cases where the contrast is an NA value
 
 #SAR_cat we want in numeric order. For strain or genotype we want 2N and BW at back end as they are the "base case" higher sample size and survival.
 if(Contrast == "SAR_cat"){

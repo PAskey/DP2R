@@ -56,7 +56,7 @@ Clipsrel = Link_rel%>%
 Link_none = Link_rel%>%
   dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
                                       !is.na(sby_rel)&
-                                      !if_any(c(Strain_rel, Geno_rel, LS_rel),
+                                      !dplyr::if_any(c(Strain_rel, Geno_rel, LS_rel),
                                               ~ stringr::str_detect(.x, ","))&
                                       (interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
 

@@ -30,5 +30,5 @@ This dataset categorizes daytypes, weather, hour of unobserved counts to extrapo
 \examples{
 data(Pred_vars)
 head(Pred_vars)
+
 }
-\keyword{datasets}

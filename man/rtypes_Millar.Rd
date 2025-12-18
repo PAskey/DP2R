@@ -22,7 +22,7 @@ curves should be used:
 \code{"tt.logistic"} for control and logistic method,
 \code{"gamma"} for gamma method.}
 
-\item{theta_min_mesh}{a number indicating the smallest mesh size used in fitting, as all parameters are set as relative values to the smallest mesh size. Setting this value is necessary, when predicting selctivivity for a set of mesh sizes that exclude the original smallest mesh in the fit. In SPDT package must use 1, because this is the smallest mesh used in BC RIC nets for the fitting of parameters.}
+\item{theta_min_mesh}{a number indicating the smallest mesh size used in fitting, as all parameters are set as relative values to the smallest mesh size. Setting this value is necessary, when predicting selectivity for a set of mesh sizes that exclude the original smallest mesh in the fit. In SPDT package must use 1, because this is the smallest mesh used in BC RIC nets for the fitting of parameters.}
 }
 \description{
 This function returns a function corresponding to the type of curve which was selected to represent the selectivity of nets or hooks. COde taken from TropFIshR and manipulated slightly to allow for flexibility between fitting and predicting mesh sizes.

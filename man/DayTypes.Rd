@@ -28,5 +28,5 @@ used for modeling effort variations in the DP2R package.
 \examples{
 data(DayTypes)
 head(DayTypes)
+
 }
-\keyword{datasets}

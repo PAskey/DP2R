@@ -3,8 +3,7 @@
 \docType{data}
 \name{best_models}
 \alias{best_models}
-\title{# ----------------------------------------------------------------------
-Best-fitting selectivity models for each species}
+\title{Best-fitting selectivity models for each species}
 \format{
 A data frame with columns:
 \describe{
@@ -14,13 +13,9 @@ A data frame with columns:
   \item{meshSizes}{List column of mesh sizes (mm)}
 }
 }
-\usage{
-best_models
-}
 \description{
 A data frame where each row corresponds to a species and contains:
 - the selected Millar model type (`rtype`)
 - the fitted parameter vector (`theta`)
 - the mesh sizes used for fitting (`meshSizes`)
 }
-\keyword{datasets}

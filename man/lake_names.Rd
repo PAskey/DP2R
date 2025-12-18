@@ -3,8 +3,7 @@
 \docType{data}
 \name{lake_names}
 \alias{lake_names}
-\title{# ----------------------------------------------------------------------
-Lake names Dataset}
+\title{Lake names Dataset}
 \format{
 A data frame with 5 columns:
 }
@@ -15,10 +14,11 @@ DataPond.
 data(lake_names)
 }
 \description{
-A data frame summarizing lake names by using gazetted name where available and alias if not.Stirings ofr " Lake" or "Creek" are dropped. Also has concatenated lake_name_WBID for quick reference.
+A data frame summarizing lake names by using gazetted name where available and alias if not.Stirings ofr " Lake" or "Creek" are dropped.
+Also has concatenated lake_name_WBID for quick reference.
 }
 \examples{
 data(lake_names)
 head(lake_names)
+
 }
-\keyword{datasets}

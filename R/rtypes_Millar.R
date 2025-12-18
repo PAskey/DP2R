@@ -11,8 +11,8 @@
 #'    \code{"bilognorm"} for bi-lognormal method,
 #'    \code{"tt.logistic"} for control and logistic method,
 #'    \code{"gamma"} for gamma method.
-#'    
-#' @param theta_min_mesh a number indicating the smallest mesh size used in fitting, as all parameters are set as relative values to the smallest mesh size. Setting this value is necessary, when predicting selctivivity for a set of mesh sizes that exclude the original smallest mesh in the fit. In SPDT package must use 1, because this is the smallest mesh used in BC RIC nets for the fitting of parameters.  
+#'
+#' @param theta_min_mesh a number indicating the smallest mesh size used in fitting, as all parameters are set as relative values to the smallest mesh size. Setting this value is necessary, when predicting selectivity for a set of mesh sizes that exclude the original smallest mesh in the fit. In SPDT package must use 1, because this is the smallest mesh used in BC RIC nets for the fitting of parameters.
 #'
 #' @source https://www.stat.auckland.ac.nz/~millar/selectware/
 #' @source https://rdrr.io/cran/TropFishR/man/rtypes_Millar.html
@@ -35,11 +35,11 @@
 rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
   # Adapted R code from Russell Millar (https://www.stat.auckland.ac.nz/~millar/selectware/)
   # Adapted R code again from TropFishR (https://rdrr.io/cran/TropFishR/man/rtypes_Millar.html
-  
+
   if(is.null(theta_min_mesh)) theta_min_mesh <- meshSizes[1]
-  
+
   switch(rtype,
-         
+
          "norm.loc" = {
            r <- function(classes, meshSizes, th) {
              relsize <- meshSizes / theta_min_mesh
@@ -47,7 +47,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          "norm.sca" = {
            r <- function(classes, meshSizes, th) {
              relsize <- meshSizes / theta_min_mesh
@@ -55,7 +55,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          "lognorm" = {
            r <- function(classes, meshSizes, th) {
              relsize <- meshSizes / theta_min_mesh
@@ -64,7 +64,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          "binorm.sca" = {
            r <- function(classes, meshSizes, th) {
              relsize <- meshSizes / theta_min_mesh
@@ -75,7 +75,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          "bilognorm" = {
            r <- function(classes, meshSizes, th) {
              relsize <- meshSizes / theta_min_mesh
@@ -88,7 +88,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          "tt.logistic" = {
            r <- function(classes, meshSizes, th) {
              control <- (meshSizes == theta_min_mesh)
@@ -106,7 +106,7 @@ rtypes_Millar <- function(rtype, theta_min_mesh = NULL) {
              return(seln)
            }
          },
-         
+
          stop(paste("\n",rtype, "not recognised, possible curve types are \n",
                     "\"norm.loc\", \"norm.sca\", \"lognorm\" \n",
                     "\"binorm.sca\", \"bilognorm\", \"tt.logistic\" and \"gamma\""))

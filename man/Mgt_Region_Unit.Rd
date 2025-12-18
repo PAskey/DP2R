@@ -3,8 +3,7 @@
 \docType{data}
 \name{Mgt_Region_Unit}
 \alias{Mgt_Region_Unit}
-\title{# ----------------------------------------------------------------------
-Mgt_Region_Unit Dataset}
+\title{Mgt_Region_Unit Dataset}
 \format{
 A data frame with 10 columns:
 \describe{
@@ -18,7 +17,6 @@ A data frame with 10 columns:
   \item{RegionName}{managment region full name, character}
   \item{OBJECTID}{unique identifier provinical database, integer}
   \item{neighbour_mus}{comma separated list of wildlife managment units that are adjacent to wmu in column 5, character}
-
 }
 }
 \source{
@@ -28,10 +26,12 @@ Generated from bcdata R package for the DP2R package and code in data-raw folder
 data(Mgt_Region_Unit)
 }
 \description{
-A data frame regions and wildlife management units associated with lakes. Data obtained from bcdata R package and code in raw-data folder. Initial function of this data was to be able to match unique lakes by name and wmu to DFO survey data.
+A data frame regions and wildlife management units associated with lakes.
+Data obtained from bcdata R package and code in raw-data folder.
+Initial function of this data was to be able to match unique lakes by name and wmu to DFO survey data.
 }
 \examples{
 data(Mgt_Region_Unit)
 head(Mgt_Region_Unit)
+
 }
-\keyword{datasets}

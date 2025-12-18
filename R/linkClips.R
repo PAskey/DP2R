@@ -182,29 +182,23 @@ Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
                 Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
 
+mesh_lookup <- SampleDesign_MeshSizeCode %>%
+  dplyr::mutate(mesh_size_code = as.numeric(mesh_size_code)) %>%   # <- key fix
+  dplyr::group_by(sample_design_code) %>%
+  dplyr::summarise(
+    meshVec = list(sort(mesh_size_code)),
+    .groups = "drop"
+  )
+
+Collections <- vwFishCollection%>%
+  dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
+  dplyr::left_join(mesh_lookup, by = "sample_design_code")
+
+Biological <- add_selectivity(Biological,Collections)
+
 Biological<<-Biological
+Collections<<-Collections
 NR_sum<<-NR_sum
 Lake_Spp<<-Lake_Spp
-
-Collections = vwFishCollection%>%
-  dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long)
-
-
-
-#Not sur eif it is necessary to reduce to sampled only anymore....
-#if(Sampled_only==TRUE){
-#Assessments<<- Assessments[Assessments$Assessment_Key%in%Biological$Assessment_Key,]
-#Lakes<<-Lakes[Lakes$WBID%in%Biological$WBID,]
-#Nets<<-Nets[Nets$Assessment_Key%in%Biological$Assessment_Key,]
-#Releases<<-Rel_sampled
-#}
-
-#if(Sampled_only==FALSE){
-#  Assessments<<- Assessments
-#  Lakes<<-Lakes
-#  Nets<<-Nets
-#  Releases<<-Releases
-#}
-
 
 }

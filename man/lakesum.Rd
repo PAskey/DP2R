@@ -3,8 +3,7 @@
 \docType{data}
 \name{lakesum}
 \alias{lakesum}
-\title{# ----------------------------------------------------------------------
-lakesum Dataset}
+\title{lakesum Dataset}
 \format{
 A data frame with 10 columns:
 \describe{
@@ -34,5 +33,5 @@ A data frame summarizing effort estimates for lakes over all years assessed, whi
 \examples{
 data(lakesum)
 head(lakesum)
+
 }
-\keyword{datasets}

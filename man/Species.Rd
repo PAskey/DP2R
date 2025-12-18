@@ -3,8 +3,7 @@
 \docType{data}
 \name{Species}
 \alias{Species}
-\title{# ----------------------------------------------------------------------
-Species Dataset}
+\title{Species Dataset}
 \format{
 A data frame with 23 columns:
 }
@@ -20,5 +19,5 @@ A data frame summarizing basic taxonomy and characteristics of fish species foun
 \examples{
 data(Species)
 head(Species)
+
 }
-\keyword{datasets}

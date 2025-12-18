@@ -10,8 +10,13 @@ library(DP2R)
 DP2R(Tables = c("vwFishCollection", "vwIndividualFish"))
 #fish collection events using RIC nets where mesh data collected (Add Dragon 2014 and maybe others where sample design is left NA)
 sgn7s = vwFishCollection%>%filter(sample_design_code == "SGN7")%>%pull(fish_collection_id)
-#Those events where at least 3 differnet meshes captured fish
-CIs = vwIndividualFish%>%filter(fish_collection_id%in%sgn7s, !is.na(mesh_size_code))%>%group_by(fish_collection_id)%>%summarize(N = length(unique(mesh_size_code)))%>%filter(N>2)%>%pull(fish_collection_id)
+#Those collection events where at least 4 different meshes captured fish. Change to regroup by assess_event, because can be a net or two with few (but valuable fish, when lots of fish caught overall)
+CIs = vwIndividualFish%>%
+  filter(fish_collection_id%in%sgn7s, !is.na(mesh_size_code))%>%
+  group_by(assess_event_name)%>%#(fish_collection_id)%>%
+  mutate(N = length(unique(mesh_size_code)))%>%
+  filter(N>3)%>%pull(fish_collection_id)%>%unique()
+
 #only include species where at least 100 indivudals captured.
 Spp = vwIndividualFish%>%filter(fish_collection_id%in%CIs, !is.na(mesh_size_code))%>%group_by(species_code)%>%summarize(N = n())%>%filter(N>100)%>%pull(species_code)
 
@@ -29,8 +34,8 @@ breaks = c(80,250,400)
 names(breaks) = c("80-249","250-399",">=400")
 
 df = df%>%
-  mutate(Length_Bin = lencat(length_mm, 10),
-         Big_bin = lencat(length_mm,breaks = breaks, as.fact = TRUE, use.names = TRUE, names=names(breaks)),
+  mutate(Length_Bin = FSA::lencat(length_mm, 10),
+         Big_bin = FSA::lencat(length_mm,breaks = breaks, as.fact = TRUE, use.names = TRUE, names=names(breaks)),
          Mid_length = Length_Bin+5)
 
 df = df%>%group_by(species_code, Big_bin, Mid_length, mesh_size_code)%>%summarize(N = n())%>%ungroup()
@@ -45,12 +50,13 @@ df=df%>%group_by(species_code,Big_bin)%>%mutate(N_bin = sum(N), P_bin = N/sum(N)
   df_sp <- df %>%
     dplyr::filter(species_code == spp_code) %>%
     mutate(
-      mesh_mm = parse_number(as.character(mesh_size_code)) * 25.4
+      mesh_in = readr::parse_number(as.character(mesh_size_code)),
+      mesh_mm = mesh_in * 25.4
     )
 
-  select_mat <- df_sp[, c("Mid_length", "mesh_size_code", "N")] %>%
+  select_mat <- df_sp[, c("Mid_length", "mesh_mm", "N")] %>%
     tidyr::pivot_wider(
-      names_from  = mesh_size_code,
+      names_from  = mesh_mm,
       values_from = N
     )
 
@@ -58,11 +64,11 @@ df=df%>%group_by(species_code,Big_bin)%>%mutate(N_bin = sum(N), P_bin = N/sum(N)
   select_mat[is.na(select_mat)] <- 0
 
   midLengths <- sort(unique(df_sp$Mid_length)) * 1
-  meshSizes  <- sort(unique(df_sp$mesh_mm))
+  mesh_mm  <- sort(unique(df_sp$mesh_mm))
 
   list(
     midLengths      = midLengths,
-    meshSizes       = meshSizes,
+    meshSizes       = mesh_mm,
     CatchPerNet_mat = select_mat
   )
 }
@@ -91,12 +97,23 @@ pars
 fit_selectivity <- function(df, spp_code) {
   mesh_mat <- .build_mesh_mat(df, spp_code)
 
+  #Clean up species cases were fish only caught in a couple meshes (e.g. RSC)
+  # Drop mesh columns with zero total catch
+  keep <- colSums(mesh_mat$CatchPerNet_mat, na.rm = TRUE) > 0
+  mesh_mat$CatchPerNet_mat <- mesh_mat$CatchPerNet_mat[, keep, drop = FALSE]
+  mesh_mat$meshSizes <- mesh_mat$meshSizes[keep]
+  n_mesh <- length(mesh_mat$meshSizes)
+
+
+
   models <- list()
-  models[[1]] <- select_Millar(mesh_mat, x0 = NULL,          rtype = "norm.loc",   plot = FALSE)
-  models[[2]] <- select_Millar(mesh_mat, x0 = NULL,          rtype = "norm.sca",   plot = FALSE)
-  models[[3]] <- select_Millar(mesh_mat, x0 = NULL,          rtype = "lognorm",    plot = FALSE)
-  models[[4]] <- select_Millar(mesh_mat, x0 = x0_binorm,     rtype = "binorm.sca", plot = FALSE)
-  models[[5]] <- select_Millar(mesh_mat, x0 = x0_bilognorm,  rtype = "bilognorm",  plot = FALSE)
+  models[[1]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "norm.loc",   plot = FALSE)
+  models[[2]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "norm.sca",   plot = FALSE)
+  models[[3]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "lognorm",    plot = FALSE)
+  if (n_mesh >= 4) models[[4]] <- select_Millar(mesh_mat, x0=x0_binorm,  rtype="binorm.sca", plot=FALSE)
+  if (n_mesh >= 4 & spp_code!="BNH") models[[5]] <- select_Millar(mesh_mat, x0=x0_bilognorm, rtype="bilognorm",  plot=FALSE)
+
+  models <- Filter(Negate(is.null), models)
 
   Model      <- vapply(models, function(x) x$rtype,                  character(1))
   value      <- vapply(models, function(x) round(x$value, 0),        numeric(1))
@@ -133,7 +150,7 @@ fit_selectivity <- function(df, spp_code) {
     best_model = models[[best_idx]],
     best_rtype = Model[best_idx],
     best_theta = models[[best_idx]]$par,
-    meshSizes  = mesh_mat$meshSizes
+    mesh_mm  = mesh_mat$meshSizes
   )
 }
 
@@ -156,10 +173,11 @@ best_models <- data.frame(
 )
 
 best_models$theta     <- I(lapply(fits_list, `[[`, "best_theta"))
-best_models$meshSizes <- I(lapply(fits_list, `[[`, "meshSizes"))
+best_models$meshSizes <- I(lapply(fits_list, `[[`, "mesh_mm"))
 
 best_models
 
+save(best_models, file = "data/best_models.rda")
 
 
 

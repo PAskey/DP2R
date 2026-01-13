@@ -316,12 +316,15 @@ NULL
 #'
 #' @format A data frame with the following columns:
 #' \describe{
+#'   \item{common_name}{Character. Species name observed in biological samples.}
 #'   \item{species_code}{Character. Species code observed in biological samples.}
 #'   \item{select_spp}{Character. Species code of the selectivity model to use
 #'     when applying gillnet selectivity.}
 #'   \item{match_level}{Character. Taxonomic level at which the proxy species
 #'     was matched (e.g., \code{"species_code"}, \code{"species"},
 #'     \code{"genus"}, \code{"family"}, \code{"order"}).}
+#'   \item{min_FL}{number. Minimum fork length observed for species in gillnet across all DataPond biological samples.}
+#'   \item{max_FL}{number. Maximum fork length observed for species in gillnet across all DataPond biological samples.}
 #' }
 #'
 #' @details

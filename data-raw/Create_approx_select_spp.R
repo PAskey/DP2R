@@ -1,4 +1,5 @@
 # Build approx_select_spp lookup (species_code -> select_spp) using DP2R data objects only
+# This table is used to find a similar species for gillnet selectivity when mesh specific data is not available for the species of interest.
 # Matching priority:
 #   1) species_code exists in sel_lookup -> identity
 #   2) Species$species
@@ -29,8 +30,10 @@ build_approx_select_spp <- function(species_codes) {
 
   stopifnot("species_code" %in% names(Species))
   stopifnot(all(c("order", "family", "subfamily", "genus", "species") %in% names(Species)))
+  stopifnot("common_name" %in% names(Species))
+
   stopifnot("species_code" %in% names(sel_lookup))
-  stopifnot(all(c("species_code") %in% names(Biological)))
+  stopifnot(all(c("species_code", "length_mm", "method") %in% names(Biological)))
 
   model_spp <- sort(unique(as.character(sel_lookup$species_code)))
 
@@ -38,6 +41,22 @@ build_approx_select_spp <- function(species_codes) {
   sp_rank <- Biological %>%
     dplyr::count(species_code, name = "n_in_bio") %>%
     dplyr::mutate(species_code = as.character(species_code))
+
+  # min/max fork length (length_mm) by species_code
+  # ONLY where method == "GN"
+  fl_range <- Biological %>%
+    dplyr::filter(method == "GN") %>%
+    dplyr::mutate(species_code = as.character(species_code)) %>%
+    dplyr::summarise(
+      min_FL = suppressWarnings(min(length_mm, na.rm = TRUE)),
+      max_FL = suppressWarnings(max(length_mm, na.rm = TRUE)),
+      .by = "species_code"
+    ) %>%
+    dplyr::mutate(
+      # If all values were NA, min/max become Inf/-Inf; convert to NA
+      min_FL = dplyr::if_else(is.infinite(min_FL), NA_real_, as.numeric(min_FL)),
+      max_FL = dplyr::if_else(is.infinite(max_FL), NA_real_, as.numeric(max_FL))
+    )
 
   # Candidate model species with taxonomy + rank
   cand <- Species %>%
@@ -57,29 +76,35 @@ build_approx_select_spp <- function(species_codes) {
 
     # Already modeled -> identity
     if (sp %in% model_spp) {
-      return(data.frame(species_code = sp,
-                        select_spp = sp,
-                        match_level = "species_code",
-                        stringsAsFactors = FALSE))
+      return(data.frame(
+        species_code = sp,
+        select_spp = sp,
+        match_level = "species_code",
+        stringsAsFactors = FALSE
+      ))
     }
 
     row <- Species %>% dplyr::filter(species_code == sp)
     if (nrow(row) == 0) {
-      return(data.frame(species_code = sp,
-                        select_spp = NA_character_,
-                        match_level = NA_character_,
-                        stringsAsFactors = FALSE))
+      return(data.frame(
+        species_code = sp,
+        select_spp = NA_character_,
+        match_level = NA_character_,
+        stringsAsFactors = FALSE
+      ))
     }
 
-    # 1) match by Species$species (can match even if species_code differs)
+    # 1) match by Species$species
     val <- row$species[1]
     if (!is.na(val) && nzchar(as.character(val))) {
       cands <- cand %>% dplyr::filter(.data$species == val)
       if (nrow(cands) > 0) {
-        return(data.frame(species_code = sp,
-                          select_spp = pick_best(cands),
-                          match_level = "species",
-                          stringsAsFactors = FALSE))
+        return(data.frame(
+          species_code = sp,
+          select_spp = pick_best(cands),
+          match_level = "species",
+          stringsAsFactors = FALSE
+        ))
       }
     }
 
@@ -90,21 +115,36 @@ build_approx_select_spp <- function(species_codes) {
 
       cands <- cand %>% dplyr::filter(.data[[lvl]] == val)
       if (nrow(cands) > 0) {
-        return(data.frame(species_code = sp,
-                          select_spp = pick_best(cands),
-                          match_level = lvl,
-                          stringsAsFactors = FALSE))
+        return(data.frame(
+          species_code = sp,
+          select_spp = pick_best(cands),
+          match_level = lvl,
+          stringsAsFactors = FALSE
+        ))
       }
     }
 
     # no match at any level
-    data.frame(species_code = sp,
-               select_spp = NA_character_,
-               match_level = NA_character_,
-               stringsAsFactors = FALSE)
+    data.frame(
+      species_code = sp,
+      select_spp = NA_character_,
+      match_level = NA_character_,
+      stringsAsFactors = FALSE
+    )
   })
 
-  dplyr::bind_rows(out)
+  # Build final table + add common_name + FL ranges
+  dplyr::bind_rows(out) %>%
+    dplyr::left_join(
+      Species %>%
+        dplyr::transmute(
+          species_code = as.character(species_code),
+          common_name  = as.character(common_name)
+        ),
+      by = "species_code"
+    ) %>%
+    dplyr::left_join(fl_range, by = "species_code") %>%
+    dplyr::relocate(common_name, .before = species_code)
 }
 
 spp <- unique(Biological$species_code)
@@ -112,4 +152,3 @@ approx_select_spp <- build_approx_select_spp(spp)
 
 # save into your package data
 usethis::use_data(approx_select_spp, overwrite = TRUE)
-

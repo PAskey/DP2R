@@ -6,7 +6,7 @@
 \usage{
 SPDTdata(
   Spp = NULL,
-  Contrast = NULL,
+  Contrast = c("species_code", "Strain_rel", "SAR_cat", "Geno_rel"),
   drop_controls = NULL,
   Strains = NULL,
   Genotypes = NULL,

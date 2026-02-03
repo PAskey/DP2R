@@ -8,8 +8,7 @@
 #' @param theta    Optional: parameter vector; if NULL, taken from best_models.
 #' @param rel.power Optional: relative fishing power per mesh; default = 1 for all meshes.
 #' @param theta_min_mesh This is a fixed parameter of the smallest mesh size used in fitting the original selectivity functions (1" mesh for nets fit in best_models), passed to rtypes_Millar(). This should not be changed for predicting nets without 1" mesh, only change if selectivity model is updated based on even smaller meshes.
-#' @param best_models Optional: a data.frame like your best_models object. If NULL,
-#'        function will try to load it from package data.
+#' @param best_models Optional: a data.frame like the DP2R best_models data frame object. If NULL, function will try to load it from package data.'best_models' must have columns: species_code, rtype, theta, meshSizes
 #'
 predict_Millar <- function(species,
                            classes = 75:750,

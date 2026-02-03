@@ -2,14 +2,16 @@
 library(DP2R)
 DP2R(Tables = "SampleDesign_MeshSizeCode")
 
+#Full range of sizes to predict selectivity
+sel_classes <- 75:900
+
+
 mesh_lookup <- SampleDesign_MeshSizeCode %>%
   dplyr::mutate(mesh_size_code = as.numeric(mesh_size_code)) %>%
   dplyr::group_by(sample_design_code) %>%
   dplyr::summarise(meshVec = list(sort(mesh_size_code)), .groups = "drop")
 
-all_classes = c(75:900)
-
-build_sel_lookup <- function(best_models, mesh_lookup, classes = all_classes) {
+build_sel_lookup <- function(best_models, mesh_lookup, classes = sel_classes) {
   sp <- unique(best_models$species_code)
 
   tidyr::crossing(
@@ -30,8 +32,10 @@ build_sel_lookup <- function(best_models, mesh_lookup, classes = all_classes) {
     dplyr::select(species_code, sample_design_code, curve)
 }
 
-sel_lookup <- build_sel_lookup(best_models, mesh_lookup, classes = all_classes)
+sel_lookup <- build_sel_lookup(best_models, mesh_lookup, classes = sel_classes)
 usethis::use_data(sel_lookup, overwrite = TRUE)
+usethis::use_data(sel_classes, sel_lookup, overwrite = TRUE)
+
 
 
 

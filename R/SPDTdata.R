@@ -41,7 +41,13 @@
 #' @importFrom rlang .data
 
 
-SPDTdata <- function(Spp = NULL, Contrast = NULL, drop_controls = NULL, Strains = NULL, Genotypes = NULL, filters = NULL, Data_source = TRUE){
+SPDTdata <- function(Spp = NULL, Contrast = c("species_code", "Strain_rel", "SAR_cat", "Geno_rel"), drop_controls = NULL, Strains = NULL, Genotypes = NULL, filters = NULL, Data_source = TRUE){
+
+  if (missing(Contrast)) {
+    Contrast <- NULL
+  } else {
+    Contrast <- match.arg(Contrast)
+  }
 
   if(is.null(Contrast)){stop("Must define a 'Contrast' for SPDTdata() function, see ?SPDTdata, for all data use SLD2R()  or linkClips() instead")}
 
@@ -127,8 +133,6 @@ gdf <- idf%>%
 
 #Using clipsum instead of Xnew should keep release date and sample date and better cross reference when multiple release ids for one release group.
 clipsdf<-clipsdf%>%
-  #dplyr::filter(n_sby == 1)%>%
-  #dplyr::mutate(clipsbys = as.integer(clipsbys))
   dplyr::filter(!is.na(age)&sby_rel>0)%>%#Cases of a single defined cohort.
   dplyr::mutate(sby_rel = as.integer(sby_rel))
 
@@ -136,8 +140,6 @@ clipsdf<-clipsdf%>%
 #Can't add avg_sampling date within gdf, because will be different for each strain, age, etc.
 idf$date_assessed = as.POSIXct(idf$date_assessed)
 uni_events = idf%>%
-  #filter out indoor capture methods like HATCH, etc. and FFSBC "lakes"
-  #dplyr::filter(!(Capture_Method%in%c('HATCH', 'LAB','UNK')))%>%#to filter out FFSBC lakes, !grepl("FFSBC",WBID)
   dplyr::group_by(Lk_yr, Season, method)%>%
   dplyr::summarize(avg_sample_date = round(mean(.data$date_assessed,na.rm = TRUE), units = "days"))%>%
   dplyr::ungroup()

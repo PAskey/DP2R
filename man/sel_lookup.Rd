@@ -7,11 +7,12 @@
 \format{
 A data frame with the following columns:
 \describe{
-  \item{species_code}{Character. Species code (e.g., \code{"RB"}, \code{"EB"}).}
+  \item{species_code}{Character. Modeled species code (e.g., \code{"RB"}, \code{"EB"}).}
   \item{sample_design_code}{Character. Gillnet sample design code defining
     the mesh configuration of the net (e.g., \code{"SGN7"}, \code{"FWIN"}).}
-  \item{curve}{List-column of numeric vectors. Each vector contains relative
-    selectivity values for fish lengths 75--650 mm, in 1 mm increments.}
+  \item{curve}{List-column of numeric vectors. Each vector has length
+    \code{length(sel_classes)} and contains relative selectivity values
+    aligned to \code{sel_classes}.}
 }
 }
 \source{
@@ -21,19 +22,18 @@ Generated internally for the DP2R package using \code{\link{predict_Millar}}.
 data(sel_lookup)
 }
 \description{
-A dataset containing precomputed relative gillnet selectivity curves
-for combinations of fish species and gillnet sample designs.
+A dataset containing precomputed relative gillnet selectivity curves for
+combinations of fish species and gillnet sample designs.
 }
 \details{
-Each row corresponds to a unique combination of
-\code{species_code} and \code{sample_design_code}.
-The \code{curve} column is a numeric vector giving the relative
-selectivity (scaled to a maximum of 1) for fish lengths from
-75 to 650 mm (inclusive), as predicted by \code{\link{predict_Millar}}.
+Each row corresponds to a unique combination of \code{species_code} and
+\code{sample_design_code}. The \code{curve} column is a numeric vector of
+relative selectivity values aligned to \code{\link{sel_classes}} (1 mm
+increments). Curves are predicted using \code{\link{predict_Millar}} from
+\code{\link{best_models}} and the mesh configuration for each sample design.
 
-This lookup table is intended to support fast assignment of selectivity
-values to individual fish records without repeatedly re-evaluating Millar
-selectivity models.
+This lookup table supports fast assignment of selectivity values to large
+biological datasets without repeatedly re-evaluating Millar models.
 }
 \examples{
 data(sel_lookup)

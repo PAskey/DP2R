@@ -4,7 +4,9 @@
 library(bcdata)
 library(sf)
 library(dplyr)
+library(stringr)
 
+start <- Sys.time()
 # ---- Helpers ----
 get_wmu <- function() {
   # Try the record name first; fall back to warehouse FC name if needed
@@ -25,6 +27,9 @@ get_fwa_lakes <- function() {
     sf::st_make_valid() |>
     sf::st_transform(3005)
 }
+
+#Warning message:
+#  It is advised to use the permanent id ('cb1e3aba-d3fe-4de1-a2d4-b8b6650fb1f6') rather than #the name of the record ('freshwater-atlas-lakes') to guard against future name changes.
 
 get_fwa_watersheds <- function() {
   bcdata::bcdc_query_geodata("freshwater-atlas-watersheds") |>
@@ -77,16 +82,19 @@ wmu_from_watershed_code <- function(watershed_code, wmu = NULL, watersheds = NUL
 # ---- Data preparation ----
 fwa_lakes <- get_fwa_lakes()
 bc_wmu <- get_wmu()
-DP2R::DP2R(Tables = c("vwWaterbodyLake"))
-Waterbody = Waterbody%>%filter(waterbody_type == "LK")
+DP2R::DP2R(Tables = c("vwWaterbodyLake", "vwWaterbody"))
+#Waterbody = Waterbody%>%filter(waterbody_type == "LK")
 
 # Reduce down to lakes in DataPond and select minimal useful columns
 lakes <- fwa_lakes |>
-  dplyr::filter((str_to_upper(GNIS_NAME_1) %in% vwWaterbodyLake$gazetted_name)|(WATERBODY_KEY_GROUP_CODE_50K%in%vwWaterbodyLake$WBID)) |>
+  dplyr::filter(#(str_to_upper(GNIS_NAME_1) %in% vwWaterbody$gazetted_name[!is.na(vwWaterbody$gazetted_name)])|
+                   (WATERBODY_KEY_GROUP_CODE_50K%in%vwWaterbody$WBID)) |>
   dplyr::select(WATERBODY_POLY_ID, GNIS_NAME_1, GNIS_NAME_2, WATERBODY_KEY_GROUP_CODE_50K, geometry) |>
   dplyr::rename(gazetted_name = GNIS_NAME_1,
                 alias = GNIS_NAME_2,
                 WBID = WATERBODY_KEY_GROUP_CODE_50K)
+
+
 
 #Rename to match other tables
 wmu <- bc_wmu |>
@@ -96,6 +104,18 @@ wmu <- bc_wmu |>
     region = REGION_RESPONSIBLE_ID,
     RegionName = REGION_RESPONSIBLE_NAME
   )
+
+#There is an error in the dataset assigning 7B to Omineca instead of Peace
+wmu$RegionName[wmu$region == "7B"]<-"Peace"
+
+#standardize names
+normalize_key <- function(x) {
+  x %>%
+    as.character() %>%
+    str_to_upper() %>%
+    str_replace_all("[^A-Z0-9]", "")
+}
+
 
 Mgt_Region_Unit <- wmu_from_waterbody_id(
   waterbody_poly_id = lakes$WATERBODY_POLY_ID,
@@ -112,7 +132,7 @@ used_pairs <- mru1 %>%
   filter(!is.na(WBID) & WBID != "") %>%
   distinct(name_key, region, WBID)
 
-# 2) Candidate WBIDs from vwWaterbodyLake (by same keys)
+# 2) Candidate WBIDs from vwWaterbody (by same keys)
 candidates <- vwWaterbodyLake %>%
   transmute(name_key = normalize_key(gazetted_name),
             region   = region,
@@ -137,13 +157,17 @@ Mgt_Region_Unit <- mru1 %>%
   mutate(WBID = if_else(is.na(WBID) | WBID == "", WBID_fill, WBID)) %>%
   select(-WBID_fill, -name_key)
 
+
+##Add in locale name
+Mgt_Region_Unit = left_join(Mgt_Region_Unit, vwWaterbody[,c("WBID","locale_name")], by = "WBID")
+
 #which lakes were omitted
-#missing = setdiff(vwWaterbodyLake$WBID, Mgt_Region_Unit2$WBID)
+#missing = setdiff(vwWaterbody$WBID, Mgt_Region_Unit2$WBID)
 
 #DP2R::Releases2R()
 #stocked = unique(Releases$WBID)
 #miss_stocked <- intersect(missing, stocked)
-#missing = vwWaterbodyLake%>%filter(WBID%in%miss_stocked)
+#missing = vwWaterbody%>%filter(WBID%in%miss_stocked)
 #length(miss_stocked)
 
 
@@ -185,6 +209,8 @@ Mgt_Region_Unit <- dplyr::left_join(
   neighbour_map,
   by = "Management_Unit"
 )
+end <- Sys.time()
+runtime = end-start
 
 path = "C:/Users/paul.askey/OneDrive - Freshwater Fisheries Society of B.C/FFSBC work docs/Git_projects/DP2R/data"
 save(Mgt_Region_Unit, file = file.path(path, "Mgt_Region_Unit.rda"))

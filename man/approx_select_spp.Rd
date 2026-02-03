@@ -7,15 +7,11 @@
 \format{
 A data frame with the following columns:
 \describe{
-  \item{common_name}{Character. Species name observed in biological samples.}
   \item{species_code}{Character. Species code observed in biological samples.}
   \item{select_spp}{Character. Species code of the selectivity model to use
     when applying gillnet selectivity.}
-  \item{match_level}{Character. Taxonomic level at which the proxy species
-    was matched (e.g., \code{"species_code"}, \code{"species"},
-    \code{"genus"}, \code{"family"}, \code{"order"}).}
-  \item{min_FL}{number. Minimum fork length observed for species in gillnet across all DataPond biological samples.}
-  \item{max_FL}{number. Maximum fork length observed for species in gillnet across all DataPond biological samples.}
+  \item{match_level}{Character. Description of how the proxy species was chosen
+    (e.g., taxonomic match level).}
 }
 }
 \usage{
@@ -23,41 +19,22 @@ data(approx_select_spp)
 }
 \description{
 A lookup table mapping observed fish \code{species_code} values to the
-species selectivity model actually used when applying gillnet selectivity.
+selectivity model species actually used when applying gillnet selectivity.
 }
 \details{
-This table is used when a species does not have a fitted selectivity model
+This table is used when a species does not have a fitted selectivity curve
 in \code{\link{sel_lookup}}. In such cases, selectivity is approximated using
-a proxy species selected from available models based on taxonomic similarity
-and data availability.
+a proxy species (\code{select_spp}) that *does* have a curve.
 
-The proxy species (\code{select_spp}) is chosen using the following hierarchy:
-\enumerate{
-  \item Exact match on \code{species_code} (if available in \code{sel_lookup})
-  \item Match on taxonomic \code{species} (from the \code{Species} table)
-  \item Genus
-  \item Subfamily
-  \item Family
-  \item Order
-}
-
-When multiple candidate model species are available at the same taxonomic
-level, the proxy species is selected as the one occurring most frequently
-in the \code{Biological} dataset used to build the lookup table.
-
-This table is generated internally (typically once per year) and stored
-in the package \code{data/} directory. It is not intended to be edited
-manually.
+The table is generated internally and stored in the package \code{data/}
+directory. It is not intended to be edited manually.
 
 
-The \code{approx_select_spp} table is used by
-\code{\link{add_selectivity}} to determine which selectivity curve to apply
-for each fish record. If no proxy species can be identified, selectivity
-defaults to 1 (i.e., no size-based selectivity adjustment).
+\code{approx_select_spp} is used by \code{\link{GN_select}} to map species to
+an available selectivity curve in \code{\link{sel_lookup}}.
 }
 \seealso{
 \code{\link{sel_lookup}},
-\code{\link{add_selectivity}},
-\code{\link{Species}}
+\code{\link{GN_select}}
 }
 \keyword{internal}

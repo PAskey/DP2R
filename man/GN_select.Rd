@@ -2,43 +2,36 @@
 % Please edit documentation in R/GN_select.R
 \name{GN_select}
 \alias{GN_select}
-\title{GN_select}
+\title{Gillnet selectivity at fork length}
 \usage{
-GN_select(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL)
+GN_select(species, length_mm, sample_design_code = "SGN7")
 }
 \arguments{
-\item{Millar_model}{a TRUE/FALSE to indicate whether Millar model should be used for predictions}
+\item{species}{Species code(s).}
 
-\item{meshSizes_in}{a vecotr of mesh sizes in inches. Only applicable to Millar model and defaults to full RIC net}
+\item{length_mm}{Fork length(s) in mm.}
 
-\item{FLengths}{an integer or vector of fork lengths in mm for which to calculate relative probability of capture by RIC gillnet.}
+\item{sample_design_code}{Net/sample design code(s). Defaults to \code{"SGN7"}.}
+}
+\value{
+Numeric vector of selectivity values. Returns \code{NA_real_} when:
+\itemize{
+  \item \code{length_mm} is missing,
+  \item length is outside \code{sel_classes},
+  \item no curve exists for the (species, design) pair even after approximation.
+}
 }
 \description{
-A function to correct for gillnet selectivity
+Returns relative gillnet selectivity (0--1) for one or more fish given
+species code, fork length (mm), and sample design code.
 }
 \details{
-This function estimates the relative size-dependent vulnerability of trout to the standard RIC gillnets.
-The function is used to multiply observed catches by a multiplier proportional to the fish fork length.
-In the future the selectivity function can be made more robust to account for non-standard combinations of gillnet panels.
-Using a simple multiplier to correct for selectivity only works with good sample sizes, because 0 * anything = 0.
+Selectivity curves are stored in \code{sel_lookup} on a shared length grid
+\code{sel_classes}. Species without direct curves are automatically mapped
+to proxy species using \code{approx_select_spp}.
 }
 \examples{
-Must be connected to VPN if working remotely
-
-
-#Create a vector of fish lengths from 50 to 650mm
-Fish_lengths = c(50:650)
-
-#Estimate the relative probability of capture for each of the fish lengths
-pvals = RICselect(Fish_lengths)
-
-#Plot the selectivity function
-plot(pvals~Fish_lengths)
-
-#However, you can access this selectivity function directly by simply typing
-select_lookup
+GN_select("RB", 312, "SGN7")
+GN_select(c("RB","BT"), c(312, 580), "SGN7")
 
 }
-\keyword{SPDT;}
-\keyword{gillnet;}
-\keyword{selectivity}

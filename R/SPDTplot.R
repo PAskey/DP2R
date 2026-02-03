@@ -108,7 +108,7 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
     #ggplot2::geom_line(ggplot2::aes(y = .data$avg_surv), lty = 2, lwd = 1.2)+
     viridis::scale_colour_viridis(discrete = TRUE)+
     #ggplot2::scale_y_continuous(trans='log10')+#,expand=c(0.1,0.1))+
-    ggplot2::labs(y = "Proportion top strain in catch", x = "Lake", shape  = controls[1],  fill = "Non-salmoninae")+
+    ggplot2::labs(y = "Proportion top group in catch", x = "Lake", shape  = controls[1],  fill = "Non-salmoninae")+
     ggplot2::scale_shape_manual(values = rep(21:25, 5))+
     #ggplot2::facet_wrap(~.data$Comparison, scales = "free_x")+
     ggplot2::facet_grid(~.data$a+.data$b, scales = "free_x", space = "free")+

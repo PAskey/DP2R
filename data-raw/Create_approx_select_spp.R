@@ -43,19 +43,18 @@ build_approx_select_spp <- function(species_codes) {
     dplyr::mutate(species_code = as.character(species_code))
 
   # min/max fork length (length_mm) by species_code
-  # ONLY where method == "GN"
-  fl_range <- Biological %>%
+  # GN-only observed range
+  fl_range_gn <- Biological %>%
     dplyr::filter(method == "GN") %>%
     dplyr::mutate(species_code = as.character(species_code)) %>%
     dplyr::summarise(
-      min_FL = suppressWarnings(min(length_mm, na.rm = TRUE)),
-      max_FL = suppressWarnings(max(length_mm, na.rm = TRUE)),
+      min_FL_gn = suppressWarnings(min(length_mm, na.rm = TRUE)),
+      max_FL_gn = suppressWarnings(max(length_mm, na.rm = TRUE)),
       .by = "species_code"
     ) %>%
     dplyr::mutate(
-      # If all values were NA, min/max become Inf/-Inf; convert to NA
-      min_FL = dplyr::if_else(is.infinite(min_FL), NA_real_, as.numeric(min_FL)),
-      max_FL = dplyr::if_else(is.infinite(max_FL), NA_real_, as.numeric(max_FL))
+      min_FL_gn = dplyr::if_else(is.infinite(min_FL_gn), NA_real_, as.numeric(min_FL_gn)),
+      max_FL_gn = dplyr::if_else(is.infinite(max_FL_gn), NA_real_, as.numeric(max_FL_gn))
     )
 
   # Candidate model species with taxonomy + rank
@@ -143,7 +142,7 @@ build_approx_select_spp <- function(species_codes) {
         ),
       by = "species_code"
     ) %>%
-    dplyr::left_join(fl_range, by = "species_code") %>%
+    dplyr::left_join(fl_range_gn, by = "species_code") %>%
     dplyr::relocate(common_name, .before = species_code)
 }
 

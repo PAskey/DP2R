@@ -6,8 +6,9 @@
 \usage{
 plot_selectivity(
   sel_lookup = NULL,
+  approx_select_spp = NULL,
   species,
-  design,
+  design = "SGN7",
   classes = 75:900,
   facet = c("none", "species", "design"),
   colour_by = c("auto", "species", "design", "interaction")
@@ -62,13 +63,17 @@ data(sel_lookup)
 plot_selectivity(species = c("RB","EB"), design = "SGN7")
 
 # Compare net designs within a single species
-plot_selectivity(species = "RB", design = c("SGN7","FWIN","SWIN"))
+plot_selectivity(species = "RB", design = c("SGN7","FWIN","SGN6"))
 
 # Facet by design, colours fixed by species
 plot_selectivity(species = c("RB","EB"), design = c("SGN7","FWIN"), facet = "design")
 
-# Facet by species, colours fixed by design
-plot_selectivity(species = c("RB","EB"), design = c("SGN7","FWIN"), facet = "species")
+# Facet by species for sportfish, standard design
+plot_selectivity(species = c("BS","BT","CT","EB","KO", "LT","RB", "WCT","YP"), design = c("SGN7", "FWIN"), facet = "species")
+
+#' # Facet by species for non-sportfish, standard design
+plot_selectivity(species = c("BNH","LKC", "LSU","PCC", "NSC","CSU", "RSC"), design = c("SGN7"), facet = "species", colour_by = "species")
+
 }
 
 }

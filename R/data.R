@@ -230,20 +230,29 @@ NULL
 NULL
 
 # ----------------------------------------------------------------------
-#' Best-fitting selectivity models for each species
+#' Best-fitting gillnet selectivity models by species
 #'
-#' A data frame where each row corresponds to a species and contains:
-#' - the selected Millar model type (`rtype`)
-#' - the fitted parameter vector (`theta`)
-#' - the mesh sizes used for fitting (`meshSizes`)
+#' A data frame of fitted Millar selectivity models used by
+#' \code{\link{predict_Millar}} and to build \code{\link{sel_lookup}}.
+#'
+#' Each row corresponds to one modeled species and stores the selected model
+#' type and fitted parameters required to predict relative gillnet selectivity
+#' across a set of mesh sizes.
 #'
 #' @format A data frame with columns:
 #' \describe{
-#'   \item{species_code}{Species code (e.g., "KO", "RB")}
-#'   \item{rtype}{Millar selectivity model type}
-#'   \item{theta}{List column of parameter vectors}
-#'   \item{meshSizes}{List column of mesh sizes (mm)}
+#'   \item{species_code}{Character. Species code (e.g., \code{"KO"}, \code{"RB"}).}
+#'   \item{rtype}{Character. Millar selectivity model type.}
+#'   \item{theta}{List-column. Fitted parameter vector for the selected model.}
+#'   \item{meshSizes}{List-column. Mesh sizes (mm) used when fitting the model.}
 #' }
+#'
+#' @usage data(best_models)
+#' @source Generated internally for the DP2R package from DataPond biological data.
+#'
+#' @examples
+#' data(best_models)
+#' head(best_models)
 #'
 #' @docType data
 #' @name best_models
@@ -252,26 +261,26 @@ NULL
 # ----------------------------------------------------------------------
 #' Precomputed gillnet selectivity lookup table
 #'
-#' A dataset containing precomputed relative gillnet selectivity curves
-#' for combinations of fish species and gillnet sample designs.
+#' A dataset containing precomputed relative gillnet selectivity curves for
+#' combinations of fish species and gillnet sample designs.
 #'
-#' Each row corresponds to a unique combination of
-#' \code{species_code} and \code{sample_design_code}.
-#' The \code{curve} column is a numeric vector giving the relative
-#' selectivity (scaled to a maximum of 1) for fish lengths from
-#' 75 to 650 mm (inclusive), as predicted by \code{\link{predict_Millar}}.
+#' Each row corresponds to a unique combination of \code{species_code} and
+#' \code{sample_design_code}. The \code{curve} column is a numeric vector of
+#' relative selectivity values aligned to \code{\link{sel_classes}} (1 mm
+#' increments). Curves are predicted using \code{\link{predict_Millar}} from
+#' \code{\link{best_models}} and the mesh configuration for each sample design.
 #'
-#' This lookup table is intended to support fast assignment of selectivity
-#' values to individual fish records without repeatedly re-evaluating Millar
-#' selectivity models.
+#' This lookup table supports fast assignment of selectivity values to large
+#' biological datasets without repeatedly re-evaluating Millar models.
 #'
 #' @format A data frame with the following columns:
 #' \describe{
-#'   \item{species_code}{Character. Species code (e.g., \code{"RB"}, \code{"EB"}).}
+#'   \item{species_code}{Character. Modeled species code (e.g., \code{"RB"}, \code{"EB"}).}
 #'   \item{sample_design_code}{Character. Gillnet sample design code defining
 #'     the mesh configuration of the net (e.g., \code{"SGN7"}, \code{"FWIN"}).}
-#'   \item{curve}{List-column of numeric vectors. Each vector contains relative
-#'     selectivity values for fish lengths 75--650 mm, in 1 mm increments.}
+#'   \item{curve}{List-column of numeric vectors. Each vector has length
+#'     \code{length(sel_classes)} and contains relative selectivity values
+#'     aligned to \code{sel_classes}.}
 #' }
 #'
 #' @usage data(sel_lookup)
@@ -285,61 +294,62 @@ NULL
 #' @name sel_lookup
 NULL
 
+
 # ----------------------------------------------------------------------
 #' Approximate species mapping for gillnet selectivity
 #'
 #' A lookup table mapping observed fish \code{species_code} values to the
-#' species selectivity model actually used when applying gillnet selectivity.
+#' selectivity model species actually used when applying gillnet selectivity.
 #'
-#' This table is used when a species does not have a fitted selectivity model
+#' This table is used when a species does not have a fitted selectivity curve
 #' in \code{\link{sel_lookup}}. In such cases, selectivity is approximated using
-#' a proxy species selected from available models based on taxonomic similarity
-#' and data availability.
+#' a proxy species (\code{select_spp}) that *does* have a curve.
 #'
-#' The proxy species (\code{select_spp}) is chosen using the following hierarchy:
-#' \enumerate{
-#'   \item Exact match on \code{species_code} (if available in \code{sel_lookup})
-#'   \item Match on taxonomic \code{species} (from the \code{Species} table)
-#'   \item Genus
-#'   \item Subfamily
-#'   \item Family
-#'   \item Order
-#' }
-#'
-#' When multiple candidate model species are available at the same taxonomic
-#' level, the proxy species is selected as the one occurring most frequently
-#' in the \code{Biological} dataset used to build the lookup table.
-#'
-#' This table is generated internally (typically once per year) and stored
-#' in the package \code{data/} directory. It is not intended to be edited
-#' manually.
+#' The table is generated internally and stored in the package \code{data/}
+#' directory. It is not intended to be edited manually.
 #'
 #' @format A data frame with the following columns:
 #' \describe{
-#'   \item{common_name}{Character. Species name observed in biological samples.}
 #'   \item{species_code}{Character. Species code observed in biological samples.}
 #'   \item{select_spp}{Character. Species code of the selectivity model to use
 #'     when applying gillnet selectivity.}
-#'   \item{match_level}{Character. Taxonomic level at which the proxy species
-#'     was matched (e.g., \code{"species_code"}, \code{"species"},
-#'     \code{"genus"}, \code{"family"}, \code{"order"}).}
-#'   \item{min_FL}{number. Minimum fork length observed for species in gillnet across all DataPond biological samples.}
-#'   \item{max_FL}{number. Maximum fork length observed for species in gillnet across all DataPond biological samples.}
+#'   \item{match_level}{Character. Description of how the proxy species was chosen
+#'     (e.g., taxonomic match level).}
 #' }
 #'
 #' @details
-#' The \code{approx_select_spp} table is used by
-#' \code{\link{add_selectivity}} to determine which selectivity curve to apply
-#' for each fish record. If no proxy species can be identified, selectivity
-#' defaults to 1 (i.e., no size-based selectivity adjustment).
+#' \code{approx_select_spp} is used by \code{\link{GN_select}} to map species to
+#' an available selectivity curve in \code{\link{sel_lookup}}.
 #'
 #' @seealso
 #' \code{\link{sel_lookup}},
-#' \code{\link{add_selectivity}},
-#' \code{\link{Species}}
+#' \code{\link{GN_select}}
 #'
 #' @docType data
 #' @name approx_select_spp
 #' @keywords internal
 #' @usage data(approx_select_spp)
+NULL
+
+
+# ----------------------------------------------------------------------
+#' Fork-length grid for gillnet selectivity curves
+#'
+#' A numeric vector defining the fork-length (mm) grid used for all selectivity
+#' curves stored in \code{\link{sel_lookup}}.
+#'
+#' All curves in \code{sel_lookup$curve} are aligned to this shared grid.
+#' This enables fast lookup of selectivity values without interpolation.
+#'
+#' @format A numeric vector of fork lengths (mm).
+#'
+#' @usage data(sel_classes)
+#' @source Defined internally for the DP2R package when building \code{sel_lookup}.
+#'
+#' @examples
+#' data(sel_classes)
+#' head(sel_classes)
+#'
+#' @docType data
+#' @name sel_classes
 NULL

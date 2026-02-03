@@ -3,19 +3,33 @@
 \docType{data}
 \name{best_models}
 \alias{best_models}
-\title{Best-fitting selectivity models for each species}
+\title{Best-fitting gillnet selectivity models by species}
 \format{
 A data frame with columns:
 \describe{
-  \item{species_code}{Species code (e.g., "KO", "RB")}
-  \item{rtype}{Millar selectivity model type}
-  \item{theta}{List column of parameter vectors}
-  \item{meshSizes}{List column of mesh sizes (mm)}
+  \item{species_code}{Character. Species code (e.g., \code{"KO"}, \code{"RB"}).}
+  \item{rtype}{Character. Millar selectivity model type.}
+  \item{theta}{List-column. Fitted parameter vector for the selected model.}
+  \item{meshSizes}{List-column. Mesh sizes (mm) used when fitting the model.}
 }
+}
+\source{
+Generated internally for the DP2R package from DataPond biological data.
+}
+\usage{
+data(best_models)
 }
 \description{
-A data frame where each row corresponds to a species and contains:
-- the selected Millar model type (`rtype`)
-- the fitted parameter vector (`theta`)
-- the mesh sizes used for fitting (`meshSizes`)
+A data frame of fitted Millar selectivity models used by
+\code{\link{predict_Millar}} and to build \code{\link{sel_lookup}}.
+}
+\details{
+Each row corresponds to one modeled species and stores the selected model
+type and fitted parameters required to predict relative gillnet selectivity
+across a set of mesh sizes.
+}
+\examples{
+data(best_models)
+head(best_models)
+
 }

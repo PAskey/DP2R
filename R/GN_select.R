@@ -1,73 +1,71 @@
-#' A function to correct for gillnet selectivity
+#' Gillnet selectivity at fork length
 #'
-#' This function estimates the relative size-dependent vulnerability of trout to the standard RIC gillnets.
-#' The function is used to multiply observed catches by a multiplier proportional to the fish fork length.
-#' In the future the selectivity function can be made more robust to account for non-standard combinations of gillnet panels.
-#' Using a simple multiplier to correct for selectivity only works with good sample sizes, because 0 * anything = 0.
+#' Returns relative gillnet selectivity (0--1) for one or more fish given
+#' species code, fork length (mm), and sample design code.
 #'
+#' Selectivity curves are stored in \code{sel_lookup} on a shared length grid
+#' \code{sel_classes}. Species without direct curves are automatically mapped
+#' to proxy species using \code{approx_select_spp}.
 #'
-#' @title GN_select
-#' @name GN_select
-#' @keywords SPDT; gillnet; selectivity
-# @export
-#' @param FLengths an integer or vector of fork lengths in mm for which to calculate relative probability of capture by RIC gillnet.
-#' @param Millar_model a TRUE/FALSE to indicate whether Millar model should be used for predictions
-#' @param meshSizes_in a vecotr of mesh sizes in inches. Only applicable to Millar model and defaults to full RIC net
+#' @param species Species code(s).
+#' @param length_mm Fork length(s) in mm.
+#' @param sample_design_code Net/sample design code(s). Defaults to \code{"SGN7"}.
+#'
+#' @return Numeric vector of selectivity values. Returns \code{NA_real_} when:
+#' \itemize{
+#'   \item \code{length_mm} is missing,
+#'   \item length is outside \code{sel_classes},
+#'   \item no curve exists for the (species, design) pair even after approximation.
+#' }
 #'
 #' @examples
-#' Must be connected to VPN if working remotely
+#' GN_select("RB", 312, "SGN7")
+#' GN_select(c("RB","BT"), c(312, 580), "SGN7")
 #'
-#'
-#'#Create a vector of fish lengths from 50 to 650mm
-#'Fish_lengths = c(50:650)
-#'
-#'#Estimate the relative probability of capture for each of the fish lengths
-#'pvals = RICselect(Fish_lengths)
-#'
-#'#Plot the selectivity function
-#'plot(pvals~Fish_lengths)
-#'
-#'#However, you can access this selectivity function directly by simply typing
-#'select_lookup
-#'
-#' @importFrom magrittr "%>%"
-#' @importFrom rlang .data
-#'
+#' @export
+GN_select <- function(species,
+                      length_mm,
+                      sample_design_code = "SGN7") {
 
-GN_select<- function(FLengths_mm, Millar_model = FALSE, meshSizes_in = NULL){
+  data("sel_lookup", "sel_classes", "approx_select_spp", envir = environment())
+  sel_lookup  <- get("sel_lookup", envir = environment(), inherits = FALSE)
+  sel_classes <- get("sel_classes", envir = environment(), inherits = FALSE)
+  approx_tbl  <- get("approx_select_spp", envir = environment(), inherits = FALSE)
 
- if(Millar_model == TRUE){
+  sp_req <- as.character(species)
+  L <- as.numeric(length_mm)
+  design <- as.character(sample_design_code)
 
-  #RIC_meshes <- c(1,1.25,1.5,2,2.5,3,3.5)
-  if(is.null(meshSizes_in)) meshSizes_in <- SPDT::RIC_param$RIC_meshes
-  meshSizes = meshSizes_in#25.4*meshSizes_in
+  # ---- Approximate species only if not directly modeled ----
+  modeled <- unique(as.character(sel_lookup$species_code))
+  needs <- !(sp_req %in% modeled)
 
-  if(sum(sort(meshSizes)==meshSizes) != length(meshSizes))
-    stop("Mesh size must be in ascending order!")
+  map <- stats::setNames(as.character(approx_tbl$select_spp),
+                         as.character(approx_tbl$species_code))
 
+  sp_use <- sp_req
+  sp_use[needs] <- dplyr::coalesce(unname(map[sp_req[needs]]), sp_req[needs])
 
+  # ---- Join curves ----
+  q <- tibble::tibble(
+    species_code = sp_use,
+    sample_design_code = design,
+    length_mm = L
+  ) %>%
+    dplyr::left_join(sel_lookup, by = c("species_code", "sample_design_code"))
 
-  #Use model 5 fit from Gillnet_Selectivity.RMD
-  #theta = SPDT::RIC_param$theta
-  #rel.power = SPDT::RIC_param$rel.power[match(meshSizes_in, SPDT::RIC_param$RIC_meshes)]
-  #rel.power[is.na(rel.power)]<-1#For mesh sizes without data
+  out <- rep(NA_real_, nrow(q))
 
-  p = predict_Millar(rtype = "bilognorm", classes = FLengths_mm, meshSizes = meshSizes, theta = theta, rel.power = rel.power)
+  # ---- Index into shared sel_classes ----
+  classes_min <- as.integer(sel_classes[1])
+  idx <- as.integer(round(q$length_mm)) - classes_min + 1L
 
+  ncls <- length(sel_classes)
+  ok <- !purrr::map_lgl(q$curve, is.null) &
+    !is.na(idx) &
+    idx >= 1L &
+    idx <= ncls
 
-   }else{
-  #Named vector approach causing issues
-  #p = RIC_param$p_gam%>%dplyr::filter(Length_mm %in% FLengths_mm)%>%dplyr::pull(p)
-  #p <- setNames(p, FLengths_mm)
-   #  lens = c(100,100, 300, 200, 4000, 100, 200)
-  #df = SPDT::RIC_param$p_gam
-  #df$p[match(lens, df$Length_mm)]
-  p = df$p[match(FLengths_mm, df$Length_mm)]
-  #p = df$p[df$Length_mm %in% FLengths_mm]
-  return(p)
-
-  }
-
-
-  return(p)
+  out[ok] <- purrr::map2_dbl(q$curve[ok], idx[ok], \(v, i) v[[i]])
+  out
 }

@@ -4,9 +4,11 @@ library(DP2R)
 library(dplyr)
 EffortEst(update.model = TRUE)
 
-VILQ = read.csv("data-raw/VILQ.csv")
+#VILQ = read.csv("data-raw/VILQ.csv")
 
-VILQ = VILQ%>%left_join(Lakes[,c("region","WBID","gazetted_name","area_ha")])%>%mutate(Angler_days_p_ha = round(Angler_days/area_ha,1))
+#VILQ = VILQ%>%left_join(Lakes[,c("region","WBID","gazetted_name","area_ha")])%>%mutate(Angler_days_p_ha = round(Angler_days/area_ha,1))
+
+#shinydata = shinydata%>%filter(method!="VILQ")
 
 #data(package = "DP2R")
 

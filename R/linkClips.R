@@ -194,7 +194,11 @@ Collections <- vwFishCollection%>%
   dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
   dplyr::left_join(mesh_lookup, by = "sample_design_code")
 
-Biological <- add_selectivity(Biological,Collections)
+Biological <- Biological %>%
+  dplyr::left_join(Collections %>% select(fish_collection_id, sample_design_code),
+            by = "fish_collection_id")
+
+Biological <- add_selectivity(Biological, out_col = "NetX")
 
 Biological<<-Biological
 Collections<<-Collections

@@ -195,7 +195,8 @@ Collections <- vwFishCollection%>%
   dplyr::left_join(mesh_lookup, by = "sample_design_code")
 
 Biological <- Biological %>%
-  dplyr::left_join(Collections %>% select(fish_collection_id, sample_design_code),
+  dplyr::left_join(Collections %>%
+                     dplyr::select(fish_collection_id, sample_design_code),
             by = "fish_collection_id")
 
 Biological <- add_selectivity(Biological, out_col = "NetX")

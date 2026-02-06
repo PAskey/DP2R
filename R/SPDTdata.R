@@ -100,7 +100,7 @@ if (!is.null(Genotypes)) {
 idf <- idf%>%
   dplyr::mutate(SAR_cat = SAR_cat(wt_rel),
                 Season = metR::season(date_assessed),
-                Season = dplyr::recode_factor(Season, MAM = "Spring", JJA = "Summer", SON = "Fall", DJF = "Winter"),
+                #Season = dplyr::recode_factor(Season, MAM = "Spring", JJA = "Summer", SON = "Fall", DJF = "Winter"),
                 NetX = ifelse(.data$method == "GN"&.data$length_mm>75&.data$length_mm<650&.data$species_code %in% c("CT","EB","KO","RB","WCT"),
                               1/SPDT::RICselect(FLengths_mm = .data$length_mm),1))%>%
   tidyr::replace_na(list(NetX = 1))
@@ -303,7 +303,8 @@ wide_df = wide_df%>%
 Spp_comp =Lake_Spp%>%
   dplyr::select(WBID, species_code, subfamily)%>%
   dplyr::group_by(WBID)%>%
-  dplyr::summarize(Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
+  dplyr::summarize(Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%
+  dplyr::ungroup()
 
 wide_df = dplyr::left_join(wide_df,Spp_comp, by = c("WBID"))
 #Time varying species composition
@@ -324,14 +325,79 @@ gdf$Lk_yr_age = paste0(gdf$Lk_yr, "_", gdf$age)
 gdf = gdf%>%
   dplyr::filter(Lk_yr_age %in% idf$Lk_yr_age)
 
-#Use gillnet effort data to get CPUE when possible.
-#gdf = dplyr::left_join(gdf,SGN_E[,c('Lk_yr','Net_nights')], by = "Lk_yr")%>%
-#dplyr::mutate(CPUE = N/Net_nights)
+#SUmmarize fish collections and counts
+ids = unique(c(idf$Lk_yr, gdf$Lk_yr))
+spp = unique(c(idf$species_code, gdf$species_code))
+
+cdf <- Collections %>%
+  dplyr::mutate(
+    Lk_yr = paste0(WBID, "_", end_year),
+    year = end_year,
+    Season = {
+      d <- as.Date(end_dt)                      # parse once
+      ok <- !is.na(d)                           # keep non-missing
+      out <- rep(NA_character_, dplyr::n())     # default NA
+      out[ok] <- as.character(metR::season(d[ok]))
+      out
+    }
+  ) %>%
+  dplyr::filter(Lk_yr %in% ids)%>%
+  dplyr::group_by(region, Lk_yr, WBID, locale_name, year, Season, method
+                )%>%
+  dplyr::summarize(Net_designs = paste0(unique(sample_design_code), collapse = ","),
+                   Nets = length(unique(interaction(end_dt, net_angler_id))),
+                   Hours = sum(fishing_hours,na.rm = T))
+
+
+counts = vwCollectCount%>%
+  dplyr::mutate(
+    Lk_yr = paste0(WBID, "_", lubridate::year(as.Date(date_assessed))),
+    Season = {
+      d <- as.Date(date_assessed)                      # parse once
+      ok <- !is.na(d)                           # keep non-missing
+      out <- rep(NA_character_, dplyr::n())     # default NA
+      out[ok] <- as.character(metR::season(d[ok]))
+      out
+    }
+  )%>%
+  dplyr::filter(Lk_yr %in% ids, species_code%in%spp)%>%
+  dplyr::group_by(Lk_yr, Season, species_code)%>%
+  dplyr::summarize( species = paste0(unique(na.omit(species_code)), collapse = ","),
+                    Count = sum(species_count,na.rm = T))
+
+cdf = cdf%>%
+  dplyr::left_join(counts, by = c("Lk_yr", "Season"))#add species_code and species_count
+
+idf_cnts = idf%>%
+  dplyr::filter(species_code%in%spp)%>%
+  dplyr::group_by(region, Lk_yr, WBID, locale_name, year, Season, method)%>%
+  dplyr::summarize(sp_meas = paste0(unique(na.omit(species_code)), collapse = ","),
+                    Measured = n())
+
+cdf = cdf%>%
+  dplyr::full_join(idf_cnts, by = c("region", "Lk_yr", "WBID", "locale_name", "year", "Season", "method")
+)
+
+#There are cases with fish, ut no netting details.
+cdf <- cdf %>%
+  rowwise() %>%
+  mutate(
+    species_code = {
+      vals <- c(species_code, species, sp_meas)
+      vals <- vals[!is.na(vals) & nzchar(trimws(vals)) & toupper(trimws(vals)) != "NA"]
+      paste(unique(vals), collapse = ",")
+    }
+  ) %>%
+  ungroup()%>%
+  select(-c(species, sp_meas))
+
 
 #Put data frames into the global environment
 idf<<-idf
 gdf<<-gdf
-#SGN_E<<-SGN_E
+cdf<<-cdf
+
+
 
 
 #Add function parameters to the global environment

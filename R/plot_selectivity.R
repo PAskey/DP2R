@@ -8,9 +8,6 @@
 #' consistent across facets (e.g., if faceting by design, colours represent
 #' species only; if faceting by species, colours represent designs only).
 #'
-#' @param sel_lookup A data frame like \code{sel_lookup} containing at least
-#'   \code{species_code}, \code{sample_design_code}, and a list-column \code{curve}
-#'   with numeric vectors of selectivity values.
 #'   If \code{NULL}, the function loads \code{sel_lookup} from package data.
 #' @param species Character vector of species codes to plot (e.g., \code{c("RB","EB")}).
 #' @param design Character vector of sample design codes to plot
@@ -23,6 +20,16 @@
 #' @param colour_by One of \code{"auto"}, \code{"species"}, \code{"design"},
 #'   or \code{"interaction"}. If \code{facet != "none"}, this argument is ignored
 #'   and colour is mapped to the non-faceted variable for consistent legend/colours.
+#' @param sel_lookup A data frame like \code{sel_lookup} containing at least
+#'   \code{species_code}, \code{sample_design_code}, and a list-column \code{curve}
+#'   with numeric vectors of selectivity values.
+#' @param approx_select_spp A data frame like \code{approx_select_spp} that maps
+#'   requested species codes to a proxy species code used for selectivity curves
+#'   when a requested species is not present in \code{sel_lookup}. Must contain
+#'   \code{species_code} (requested), \code{select_spp} (proxy), and the fork-length
+#'   bounds \code{min_FL_gn} and \code{max_FL_gn} (used to highlight the observed
+#'   range on the plot). If \code{NULL}, the function loads \code{approx_select_spp}
+#'   from package data.
 #'
 #' @return A \code{ggplot} object.
 #'
@@ -48,7 +55,7 @@
 #' # Facet by species for sportfish, standard design
 #' plot_selectivity(species = c("BS","BT","CT","EB","KO", "LT","RB", "WCT","YP"), design = c("SGN7", "FWIN"), facet = "species")
 #'
-#' #' # Facet by species for non-sportfish, standard design
+#' # Facet by species for non-sportfish, standard design
 #' plot_selectivity(species = c("BNH","LKC", "LSU","PCC", "NSC","CSU", "RSC"), design = c("SGN7"), facet = "species", colour_by = "species")
 #'
 #' }
@@ -57,13 +64,15 @@
 #' @importFrom tidyr unnest_longer
 #' @importFrom ggplot2 ggplot aes geom_line labs theme_bw facet_wrap
 #' @export
-plot_selectivity <- function(sel_lookup = NULL,
-                             approx_select_spp = NULL,
+plot_selectivity <- function(
                              species,
                              design ="SGN7",#Defaults to standard RIC net
                              classes = 75:900,
                              facet = c("none", "species", "design"),
-                             colour_by = c("auto", "species", "design", "interaction")) {
+                             colour_by = c("auto", "species", "design", "interaction"),
+                             sel_lookup = NULL,
+                             approx_select_spp = NULL
+) {
 
   colour_by_user <- !missing(colour_by)
   facet <- match.arg(facet)
@@ -93,8 +102,8 @@ plot_selectivity <- function(sel_lookup = NULL,
         dplyr::transmute(
           species_req  = as.character(species_code),
           species_use  = as.character(select_spp),
-          min_FL       = min_FL,
-          max_FL       = max_FL
+          min_FL       = min_FL_gn,
+          max_FL       = max_FL_gn
         ),
       by = "species_req"
     ) %>%
@@ -138,7 +147,7 @@ plot_selectivity <- function(sel_lookup = NULL,
   # Attach "requested species" labels (handles many-to-one approximations)
   df <- df %>%
     dplyr::inner_join(
-      mapping_ok %>% dplyr::rename(species_use = species_use),
+      mapping_ok,
       by = c("species_code" = "species_use"),
       relationship = "many-to-many"
     ) %>%
@@ -149,6 +158,7 @@ plot_selectivity <- function(sel_lookup = NULL,
         paste0(species_req, " (≈", species_code, ")")
       )
     )
+
 
 
   # If faceting, only force colour when user did NOT explicitly choose

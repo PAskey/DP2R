@@ -395,67 +395,6 @@ if(save_pdf == TRUE){
 
 }
 
-##FUTURE CONSIDERATIONS
-
-
-
-
-
-
-
-#FOr model plotting functions to work, need to convert factors outside of plotting formula
-#idf$age = as.factor(idf$age)
-
-#model = glm(data = idf, length_mm~Lk_yr+(age)*Genotype)
-#summary(model)
-#sjPlot::plot_model(model, type = "eff", terms = c("age", "Genotype"))
-
-#jtools::effect_plot(model, pred = c(Genotype,age), plot.points = TRUE)+
-#  ggplot2::facet_wrap(~age)
-
-#model = glm(data = idf, weight_g~Lk_yr+as.factor(age)*Genotype)
-#summary(model)
-#sjPlot::plot_model(model, type = "pred", terms = c("age", "Genotype"))
-
-
-
-# if (!is.null(Method)) {
-#   #idf = subset(idf, method %in% Method)
-#   plotdf = subset(gdf, method %in% Method)
-## } else{
-#   plotdf = gdf%>%dplyr::filter(!is.na(N_rel))
-# }
-
-#Sections to pull specific contrasts into wide format for survival comparisons.
-#Using controls is risky becasue we rarely acheive the same SAR, etc.
-#If a 1:1 stocking objective was achieved then the need for this disappears, and can just use glm
-
-#f = paste("NetXN ~ Lk_yr + age*",Contrast)
-
-#plot_gdf$age = as.factor(plot_gdf$age)
-
-#model = stats::glm(as.formula(f), data = plot_gdf)
-#plot(model)
-
-#sjPlot::plot_model(model, type = "pred")
-#jtools::effect_plot(model, pred = age, plot.points = TRUE, data = plot_gdf)
-#jtools::effect_plot(model, pred = Genotype, plot.points = TRUE, data = plot_gdf)
-
-#get(Contrast)
-
-
-#if (!is.null(Contrast)) {
-
-#  Contrast_possible = c("Genotype", "SAR_cat", "Strain")
-
-#  controls = dplyr::setdiff(Contrast_possible, Contrast)
-#}
-
-
-#  surv_gdf = plot_gdf%>%
-#    dplyr::group_by(locale_name, Lk_yr, sby_code, age, !!!rlang::syms(controls), !!!rlang::syms(Contrast))%>%
-#   dplyr::summarize(groups = dplyr::n(), xN = sum(NetXN), Nr = sum(N_rel))%>%
-#   tidyr::pivot_wider(names_from = Contrast, values_from = c(xN, Nr), names_sort = TRUE)
 
 
 

@@ -182,6 +182,7 @@ Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
                 Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
 
+#Section to add meshes to fish collections, which might not be necessary given net_design lookup now have
 mesh_lookup <- SampleDesign_MeshSizeCode %>%
   dplyr::mutate(mesh_size_code = as.numeric(mesh_size_code)) %>%   # <- key fix
   dplyr::group_by(sample_design_code) %>%
@@ -192,14 +193,21 @@ mesh_lookup <- SampleDesign_MeshSizeCode %>%
 
 Collections <- vwFishCollection%>%
   dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
-  dplyr::left_join(mesh_lookup, by = "sample_design_code")
+  dplyr::left_join(mesh_lookup, by = "sample_design_code")%>%
+  dplyr::ungroup()
 
+Collections<- Collections %>%
+  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+relocate(locale_name, .after = WBID)
+
+#Add sample design code to Biological
 Biological <- Biological %>%
   dplyr::left_join(Collections %>%
                      dplyr::select(fish_collection_id, sample_design_code),
             by = "fish_collection_id")
 
 Biological <- add_selectivity(Biological, out_col = "NetX")
+
 
 Biological<<-Biological
 Collections<<-Collections

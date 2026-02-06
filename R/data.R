@@ -181,21 +181,29 @@ NULL
 NULL
 
 # ----------------------------------------------------------------------
-#' Lake names Dataset
+#' Lake name reference table
 #'
-#' A data frame summarizing lake names by using gazetted name where available and alias if not.Stirings ofr " Lake" or "Creek" are dropped.
-#' Also has concatenated lake_name_WBID for quick reference.
+#' A reference table linking waterbody identifiers (WBIDs) to known lake names.
+#' The dataset includes local names, gazetted names, aliases, and a derived
+#' combined lake identifier used for joins and reporting.
 #'
-#' @format A data frame with 5 columns:
+#' @format A data frame with one row per lake and the following columns:
+#' \describe{
+#'   \item{WBID}{Character. Unique waterbody identifier.}
+#'   \item{locale_name}{Character. Local or commonly used lake name, if available.}
+#'   \item{gazetted_name}{Character. Official gazetted lake name, if available.}
+#'   \item{alias}{Character. Alternative or informal lake name.}
+#'   \item{Lake_WBID}{Character. Concatenated lake name and WBID identifier.}
+#' }
+#'
 #' @usage data(lake_names)
-#' @source DataPond.
+#'
+#' @source Derived from internal lake naming and waterbody reference sources.
 #'
 #' @examples
 #' data(lake_names)
 #' head(lake_names)
-#'
-#' @docType data
-#' @name lake_names
+"lake_names"
 NULL
 
 # ----------------------------------------------------------------------

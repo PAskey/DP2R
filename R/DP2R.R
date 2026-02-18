@@ -25,7 +25,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("LegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE) {
@@ -108,7 +108,7 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
 
     data<-data %>%
       dplyr::rename_with(~ dplyr::case_when(
-      . == "region_code" ~ "region",
+      #. == "region_code" ~ "region_code", #keep as region_code code, because some views use "region_code" for the region_name
       . == "waterbody_identifier" ~ "WBID",
       . == "fishing_effort_type" ~ "method",
       . == "assess_year" ~ "year",#In Effort table
@@ -116,9 +116,11 @@ DP2R <- function(Tables = c("vwIndividualFish", "vwCollectCount","vwFishCollecti
       . == "sex_code" ~ "sex",
       . == "maturity_code" ~ "maturity",
       . == "strain_species_code" ~ "strain",
+      . == "strain_code" ~ "strain",
       . == "ploidy_code" ~ "ploidy",
       . == "surface_area_ha" ~ "area_ha",
       . == "accepted_age" ~ "age",
+      . == "accepted_brood_year" ~ "brood_year",
       TRUE ~ .
     ))
     data

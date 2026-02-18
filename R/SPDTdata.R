@@ -342,7 +342,7 @@ cdf <- Collections %>%
     }
   ) %>%
   dplyr::filter(Lk_yr %in% ids)%>%
-  dplyr::group_by(region, Lk_yr, WBID, locale_name, year, Season, method
+  dplyr::group_by(region_code, Lk_yr, WBID, locale_name, year, Season, method
                 )%>%
   dplyr::summarize(Net_designs = paste0(unique(sample_design_code), collapse = ","),
                    Nets = length(unique(interaction(end_dt, net_angler_id))),
@@ -370,12 +370,12 @@ cdf = cdf%>%
 
 idf_cnts = idf%>%
   dplyr::filter(species_code%in%spp)%>%
-  dplyr::group_by(region, Lk_yr, WBID, locale_name, year, Season, method)%>%
+  dplyr::group_by(region_code, Lk_yr, WBID, locale_name, year, Season, method)%>%
   dplyr::summarize(sp_meas = paste0(unique(na.omit(species_code)), collapse = ","),
                     Measured = n())
 
 cdf = cdf%>%
-  dplyr::full_join(idf_cnts, by = c("region", "Lk_yr", "WBID", "locale_name", "year", "Season", "method")
+  dplyr::full_join(idf_cnts, by = c("region_code", "Lk_yr", "WBID", "locale_name", "year", "Season", "method")
 )
 
 #There are cases with fish, ut no netting details.

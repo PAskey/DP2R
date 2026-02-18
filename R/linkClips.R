@@ -92,7 +92,7 @@ SampleN = vwIndividualFish%>%
 #Search for natural recruits in stocked lakes with stocked species by year
 NR_sum = NR%>%
   dplyr::filter(interaction(WBID, year)%in%interaction(SampleN$WBID, SampleN$year), species_code%in%c("CT","EB","KO","RB", "WCT"))%>%
-  dplyr::group_by(region, gazetted_name, WBID,year,species_code)%>%
+  dplyr::group_by(region_code, gazetted_name, WBID,year,species_code)%>%
   dplyr::summarise(N = dplyr::n(),
                    Nnr = sum(Poss_NR,na.rm = T),
                    pNR = round(Nnr/N, 2),
@@ -101,7 +101,7 @@ NR_sum = NR%>%
 
 #Specific lake-species combos where at least 30% of the fish could potentially be natural recruits
 NR_lakes = NR_sum%>%
-  dplyr::group_by(region, gazetted_name, WBID,species_code)%>%
+  dplyr::group_by(region_code, gazetted_name, WBID,species_code)%>%
   dplyr::reframe(pNR = round((mean(pNR)+pNR[year == max(year)])/2,2), N = sum(N))%>%
   dplyr::filter(pNR>0.29)%>%
   dplyr::ungroup()
@@ -192,7 +192,7 @@ mesh_lookup <- SampleDesign_MeshSizeCode %>%
   )
 
 Collections <- vwFishCollection%>%
-  dplyr::select(region, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
+  dplyr::select(region_code, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
   dplyr::left_join(mesh_lookup, by = "sample_design_code")%>%
   dplyr::ungroup()
 

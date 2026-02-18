@@ -62,7 +62,7 @@ CLEANreleases <- function(){
     dplyr::mutate(SprFall = dplyr::if_else(lubridate::month(rel_Date)>8,"Fall","Spr"),
                   mark_code = dplyr::na_if(mark_code,c("")))
 
-  group_cols <- c("region", "gazetted_name","WBID", "species_code", "year","sby_code","age", "Strain","ploidy","mark_code","cur_life_stage_code", "SprFall")
+  group_cols <- c("region_code", "gazetted_name","WBID", "species_code", "year","sby_code","age", "Strain","ploidy","mark_code","cur_life_stage_code", "SprFall")
 
   #First just group together cases of multiple relids for the same group type of fish to the same lake and time.Pretty slow function, so reduced to essential summary variables
 
@@ -233,7 +233,7 @@ CLEANreleases <- function(){
     dplyr::left_join(.,Stable, by = c('WBID','year'))%>%
     dplyr::mutate(Lk_yr = paste0(WBID,"_",year))%>%
     tidyr::replace_na(.,list(Stable_yrs = 0))%>%
-    dplyr::select(-c("region","gazetted_name"))
+    dplyr::select(-c("region_code","gazetted_name"))
 
 
 

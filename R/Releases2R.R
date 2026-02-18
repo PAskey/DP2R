@@ -52,8 +52,8 @@ Releases2R <- function(Requests = FALSE){
 
   #Lake names were not exactly matching between releases and biological data, which required this code to use Biological Waterbody names
   Releases$gazetted_name = vwWaterbodyLake$gazetted_name[match(Releases$WBID, vwWaterbodyLake$WBID)]
-  #Add region
-  Releases$region = vwWaterbodyLake$region[match(Releases$WBID, vwWaterbodyLake$WBID)]
+  #Add region_code
+  Releases$region_code = vwWaterbodyLake$region_code[match(Releases$WBID, vwWaterbodyLake$WBID)]
 
   correct_FV_sby = function(so_origin_code, sby_code){
     x = dplyr::case_when(so_origin_code != "BR"&sby_code<2013~sby_code-1,

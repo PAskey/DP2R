@@ -64,7 +64,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
   ### 5. Summarize Effort by Lake
   Pred_lakes <- data %>%
     dplyr::group_by(
-      region, WBID, gazetted_name, view_location_name,
+      region_code, WBID, gazetted_name, view_location_name,
       year, lakeview_yr, method
     ) %>%
     dplyr::summarize(
@@ -181,7 +181,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     )
 
   # Define column order
-  cols <- c("region", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
+  cols <- c("region_code", "WBID", "gazetted_name", "view_location_name", "year", "method", "N", "spv_obs", "boats_obs","shore_obs","spv_AD","Boat_AD","Shore_AD","Angler_days","Angler_days_p_ha","area_ha","Exp","Exp_N")
 
   EffortEsts = sum.pred%>%
     dplyr::mutate(year = as.integer(as.character(year)))%>%#back to number format for shiny functionality

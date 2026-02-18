@@ -87,7 +87,7 @@ Effort2R <- function() {
   ###THis section reduces multi-counts per hour to the first count. A few cases have numerous counts from the same hour, which  would heavily weight that hour in the model fitting.
 
   # Define columns to group by
-  group_cols <- c("region", "WBID", "gazetted_name", "method", "view_location_name", "date", "year", "month", "hour")
+  group_cols <- c("region_code", "WBID", "gazetted_name", "method", "view_location_name", "date", "year", "month", "hour")
 
   # Define the desired column order after grouping columns
   desired_order <- c(
@@ -98,7 +98,7 @@ Effort2R <- function() {
   )
 
   # Order the data and select the first row for each within hour group
-  Edata_dt <- Edata_dt[order(region, WBID, gazetted_name, method, view_location_name, date, assessed_dt, year, month, hour)
+  Edata_dt <- Edata_dt[order(region_code, WBID, gazetted_name, method, view_location_name, date, assessed_dt, year, month, hour)
   ][, .SD[1], by = group_cols]
 
   # Reorder the columns
@@ -122,7 +122,7 @@ Effort2R <- function() {
   #Create table for ice fishing and open water separately
   #OE (observed effort) column is the total effort counted at one time across all modes: ice, tents.
   Icedata = Edata%>%dplyr::filter(ice_cover_code %in% c("COVERED")&month%in%c(1:4,11:12)|#Consider only these months in ice period#Covered is confirmation frozen
-                                  (is.na(ice_cover_code)&!region%in%c(1,2)&!WBID%in%Nofreeze&month%in%c(1:3,12))
+                                  (is.na(ice_cover_code)&!region_code%in%c(1,2)&!WBID%in%Nofreeze&month%in%c(1:3,12))
                                   )%>%droplevels()
   #For shoulder months there must be confirmation the lake is actually iced over and no boats counted
 

@@ -1,6 +1,6 @@
 #' Find WMU, Region, and RegionName from coordinates with WBID fallback
 #'
-#' Efficiently populates Wildlife Management Unit (WMU) and associated region fields.
+#' Efficiently populates Wildlife Management Unit (WMU) and associated region_code fields.
 #' Uses WGS84 coordinates first (fast point-in-polygon), then fills remaining gaps using
 #' WBID -> Freshwater Atlas lake polygons (server-side filtered) -> WMU.
 #'
@@ -18,10 +18,10 @@
 #' @param lakes_wbid_field Field in lakes layer containing WBID (default \code{"WATERBODY_KEY_GROUP_CODE_50K"}).
 #' @param wbid_chunk_size Max WBIDs per WFS request (default 400; reduce to 100 if service is flaky).
 #' @param wmu_id_field Column in \code{wmu} holding WMU id (default \code{"Management_Unit"}).
-#' @param region_field Column in \code{wmu} holding region id (default \code{"region"}).
-#' @param region_name_field Column in \code{wmu} holding region name (default \code{"RegionName"}).
+#' @param region_field Column in \code{wmu} holding region_code id (default \code{"region_code"}).
+#' @param region_name_field Column in \code{wmu} holding region_code name (default \code{"RegionName"}).
 #'
-#' @return A \code{data.frame} with columns: \code{wmu}, \code{region}, \code{RegionName}.
+#' @return A \code{data.frame} with columns: \code{wmu}, \code{region_code}, \code{RegionName}.
 #'   Same number of rows as the longest input among \code{lon/lat/WBID}.
 #'
 #' @export
@@ -35,7 +35,7 @@ find_region_wmu <- function(lon = NULL,
                             crs_work = 3005,
                             lakes_wbid_field = "WATERBODY_KEY_GROUP_CODE_50K",
                             wmu_id_field = "Management_Unit",
-                            region_field = "region",
+                            region_field = "region_code",
                             region_name_field = "RegionName") {
 
   join <- base::match.arg(join)
@@ -86,7 +86,7 @@ find_region_wmu <- function(lon = NULL,
   wmu_df <- sf::st_drop_geometry(wmu)
   wmu_lut <- dplyr::tibble(
     wmu = base::as.character(wmu_df[[wmu_id_field]]),
-    region = if (region_field %in% base::names(wmu_df)) base::as.character(wmu_df[[region_field]]) else NA_character_,
+    region_code = if (region_field %in% base::names(wmu_df)) base::as.character(wmu_df[[region_field]]) else NA_character_,
     RegionName = if (region_name_field %in% base::names(wmu_df)) base::as.character(wmu_df[[region_name_field]]) else NA_character_
   ) |>
     dplyr::distinct()

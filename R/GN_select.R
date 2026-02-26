@@ -1,43 +1,61 @@
 #' Gillnet selectivity at fork length
 #'
 #' Returns relative gillnet selectivity (0--1) for one or more fish given
-#' species code, fork length (mm), and sample design code.
+#' species code, fork length (mm), and either sample design code OR
+#' Sample_event (which can have multiple sample_design_codes in the event).
 #'
-#' Selectivity curves are stored in \code{sel_lookup} on a shared length grid
-#' \code{sel_classes}. Species without direct curves are automatically mapped
-#' to proxy species using \code{approx_select_spp}.
+#' Curves are stored on a shared length grid \code{sel_classes}.
+#' Species without direct curves are mapped to proxy species using \code{approx_select_spp}.
 #'
 #' @param species Species code(s).
 #' @param length_mm Fork length(s) in mm.
 #' @param sample_design_code Net/sample design code(s). Defaults to \code{"SGN7"}.
+#' @param Sample_event Optional Sample_event id(s). If provided, curves are pulled from
+#'   \code{sel_lookup_event} instead of \code{sel_lookup}.
 #'
-#' @return Numeric vector of selectivity values. Returns \code{NA_real_} when:
-#' \itemize{
-#'   \item \code{length_mm} is missing,
-#'   \item length is outside \code{sel_classes},
-#'   \item no curve exists for the (species, design) pair even after approximation.
-#' }
+#' @return Numeric vector of selectivity values (0--1) or NA.
 #'
 #' @examples
-#' GN_select("RB", 312, "SGN7")
-#' GN_select(c("RB","BT"), c(312, 580), "SGN7")
+#' GN_select("RB", 312, sample_design_code = "SGN7")
+#' GN_select("RB", 312, Sample_event = "GN_00394CHIL_SON")
 #'
 #' @export
 GN_select <- function(species,
                       length_mm,
-                      sample_design_code = "SGN7") {
+                      sample_design_code = "SGN7",
+                      Sample_event = NULL) {
 
-  data("sel_lookup", "sel_classes", "approx_select_spp", envir = environment())
-  sel_lookup  <- get("sel_lookup", envir = environment(), inherits = FALSE)
-  sel_classes <- get("sel_classes", envir = environment(), inherits = FALSE)
-  approx_tbl  <- get("approx_select_spp", envir = environment(), inherits = FALSE)
+  data("sel_lookup", "sel_lookup_event", "sel_classes", "approx_select_spp",
+       envir = environment())
+
+  sel_lookup       <- get("sel_lookup", envir = environment(), inherits = FALSE)
+  sel_classes      <- get("sel_classes", envir = environment(), inherits = FALSE)
+  approx_tbl       <- get("approx_select_spp", envir = environment(), inherits = FALSE)
+  sel_lookup_event <- get("sel_lookup_event", envir = environment(), inherits = FALSE)
+
 
   sp_req <- as.character(species)
   L <- as.numeric(length_mm)
-  design <- as.character(sample_design_code)
 
-  # ---- Approximate species only if not directly modeled ----
-  modeled <- unique(as.character(sel_lookup$species_code))
+  # Choose lookup + key based on Sample_event presence
+  use_event <- !is.null(Sample_event)
+
+  if (use_event) {
+    if (is.null(sel_lookup_event)) {
+      stop("Sample_event was provided but sel_lookup_event is not available in package data.")
+    }
+    lookup_tbl <- sel_lookup_event
+    key_name   <- "Sample_event"
+    key_val    <- as.character(Sample_event)
+    modeled    <- unique(as.character(sel_lookup_event$species_code))
+  } else {
+    lookup_tbl <- sel_lookup
+    key_name   <- "sample_design_code"
+    key_val    <- as.character(sample_design_code)
+    modeled    <- unique(as.character(sel_lookup$species_code))
+  }
+
+  # ---- Approximate species only if not directly modeled (relative to chosen lookup) ----
   needs <- !(sp_req %in% modeled)
 
   map <- stats::setNames(as.character(approx_tbl$select_spp),
@@ -47,12 +65,21 @@ GN_select <- function(species,
   sp_use[needs] <- dplyr::coalesce(unname(map[sp_req[needs]]), sp_req[needs])
 
   # ---- Join curves ----
-  q <- tibble::tibble(
-    species_code = sp_use,
-    sample_design_code = design,
-    length_mm = L
-  ) %>%
-    dplyr::left_join(sel_lookup, by = c("species_code", "sample_design_code"))
+  if (use_event) {
+    q <- tibble::tibble(
+      species_code = sp_use,
+      Sample_event = key_val,
+      length_mm = L
+    ) %>%
+      dplyr::left_join(lookup_tbl, by = c("species_code", "Sample_event"))
+  } else {
+    q <- tibble::tibble(
+      species_code = sp_use,
+      sample_design_code = key_val,
+      length_mm = L
+    ) %>%
+      dplyr::left_join(lookup_tbl, by = c("species_code", "sample_design_code"))
+  }
 
   out <- rep(NA_real_, nrow(q))
 

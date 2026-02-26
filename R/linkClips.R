@@ -34,8 +34,9 @@
 linkClips <- function(Sampled_only = TRUE, Data_source = TRUE){
 
 if(Data_source == TRUE){DP2R::DP2R()
-                        DP2R::Releases2R()
-                        DP2R:::CLEANreleases()
+                        DP2R::link_releases()
+                        #DP2R::Releases2R()
+                        #DP2R:::CLEANreleases()
                         }
 if(!exists("Releases")){stop("Need to start with a data load from SLD (i.e. Data_source = TRUE) at least once to start")}
 
@@ -44,7 +45,7 @@ if(!exists("Releases")){stop("Need to start with a data load from SLD (i.e. Data
 
 #Number of unique clips potentially at large in a given year if the fish is not aged
 Clipsrel = Link_rel%>%
-  dplyr::group_by(WBID, year, species_code)%>%
+  dplyr::group_by(WBID, sample_year, species_code)%>%
   dplyr::summarise(Nclips = sum(!is.na(mark_code)&is.na(age)))%>%
   dplyr::filter(Nclips>0)
 
@@ -52,20 +53,21 @@ Clipsrel = Link_rel%>%
 #Link_rel = Link_rel%>%
 #  dplyr::mutate(mark_code = ifelse((is.na(mark_code)& !is.na(sby_rel) & !stringr::str_detect(sby_rel, ",")&(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
 
-#Update for above when unaged releases area unique product over many years. Also inconsistent use of NA and "NONE" in database, so can duplicate to cover both
+#Update for above when unaged releases are a unique product over many years. Also inconsistent use of NA and "NONE" in database, so can duplicate to cover both
 Link_none = Link_rel%>%
   dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
                                       !is.na(sby_rel)&
                                       !dplyr::if_any(c(Strain_rel, Geno_rel, LS_rel),
                                               ~ stringr::str_detect(.x, ","))&
-                                      (interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+                                      (interaction(WBID,sample_year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),"NONE",mark_code))
 
 Link_rel = rbind(Link_rel, Link_none)%>%unique()
 
 
 #Clean up NOREC and UNK mark_code entries in lake-years where no clips should be present anyways.
 vwIndividualFish = vwIndividualFish%>%
-  dplyr::mutate(mark_code = ifelse((mark_code %in% c("UNK","NONE")&!(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),NA,mark_code))
+  dplyr::mutate(mark_code = ifelse(
+    (mark_code %in% c("UNK","NONE")&!(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),NA,mark_code))
 
 ##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT S NA?
 
@@ -73,8 +75,12 @@ vwIndividualFish = vwIndividualFish%>%
 #########################
 
 #Join potential stocking events to vwIndividualFish to check for natural recruits in stocked species
+join_cols = c("region_code","WBID","locale_name","year"="sample_year","species_code","age", "mark_code")
+info_cols = c("sby_rel","AF","Sterile")
 #This joins by age, so ageing errors can lead to false possible Natural Recruit
-NR = dplyr::left_join(vwIndividualFish,Link_rel, by = c(names(Link_rel)[1:5]))%>%
+NR = dplyr::left_join(vwIndividualFish,
+                      Link_rel[, names(Link_rel) %in% c(join_cols,info_cols)],
+                      by = join_cols)%>%
   dplyr::mutate(Poss_NR = dplyr::case_when(
     is.na(mark_code)&is.na(sby_rel)~1,
     is.na(mark_code)&AF&species_code!="KO"&sex=="M"~1,
@@ -108,13 +114,32 @@ NR_lakes = NR_sum%>%
 
 #Now that established which lakes have a reasonable proportion of potential NR fish species, all non-clipped fish from those lake-species groups need to be treated as suspect.
 Biological = dplyr::left_join(vwIndividualFish,NR[,c("individual_fish_id","Poss_NR")], by = "individual_fish_id")%>%
-  dplyr::mutate(Poss_NR = ifelse((is.na(mark_code)&(interaction(WBID,species_code)%in%interaction(NR_lakes$WBID,NR_lakes$species_code))),1,Poss_NR))
+  dplyr::mutate(Poss_NR = ifelse((is.na(mark_code)&
+                (interaction(WBID,species_code)%in%interaction(NR_lakes$WBID,NR_lakes$species_code))),1,Poss_NR),
+                Lk_yr = paste0(WBID,"_",year))
 
 
-##DIFFERENT strategy, first link everything without using age
+##Now link stocknig prescriptions to captured fish, first link everything without using age
+#Select columns
+info_cols = c(
+  "species_code",
+  "mark_code",
+  "sby_rel",
+  "Strain_rel",
+  "Geno_rel",
+  "LS_rel",
+  "AF",
+  "Sterile",
+  "wt_rel",
+  "N_ha_rel",
+  "avg_rel_date",
+  "Poss_Age"
+)
+
 #Perform 'Stocked_age' test to see if the entered age is within possible released ages.
-Link_rel_noage = Link_rel%>%dplyr::filter(is.na(age))%>%dplyr::select(-c(age))
-Biopossible <- dplyr::left_join(Biological,Link_rel_noage, by = c("WBID","species_code","year","mark_code"))%>%
+Link_rel_noage = Link_rel%>%dplyr::filter(is.na(age))%>%dplyr::select(all_of(c("Lk_yr",info_cols)))
+Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
+                                by = c("Lk_yr","species_code","mark_code"))%>%
   dplyr::rowwise()%>%
   dplyr::mutate(Stocked_age = age%in%as.integer(strsplit(Poss_Age, ",")[[1]]))%>%
   dplyr::ungroup()
@@ -124,8 +149,9 @@ Biopossible <- dplyr::left_join(Biological,Link_rel_noage, by = c("WBID","specie
 Bioambig = Biopossible[!Biopossible$Stocked_age,]
 
 #If yes, then re-link releases to biological using age or brood year as a linking variable.
-Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-c(sby_rel:Stable_yrs))
-Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),], by = c("WBID","species_code","year","Lk_yr","mark_code","age"))
+Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-c(sby_rel:Poss_Age))
+Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),]%>%dplyr::select(all_of(c("Lk_yr","age",info_cols))),
+                            by = c("species_code","Lk_yr","mark_code","age"))
 
 #Bring back together and remove temporary files.
 Biological = rbind(Bioambig,Bioaged)
@@ -144,7 +170,7 @@ replace_uni = function(var,uni, Poss_NR){
 }
 
 Biological = Biological%>%
-  dplyr::mutate(sby_code = accepted_brood_year)%>%#add a sby_code to alter if unique stocking ages possible and match to release names
+  dplyr::mutate(sby_code = brood_year)%>%#add a sby_code to alter if unique stocking ages possible and match to release names
   dplyr::mutate(
     Strain = replace_uni(strain, Strain_rel, Poss_NR),
     Genotype = replace_uni(ploidy, Geno_rel, Poss_NR),
@@ -181,36 +207,23 @@ Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
                 Spp_class = paste(sort(unique(subfamily)), collapse = ','),
                 Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
+Biological <- add_selectivity(Biological)%>%
+                dplyr::mutate(NetX = 1/select)
 
-#Section to add meshes to fish collections, which might not be necessary given net_design lookup now have
-mesh_lookup <- SampleDesign_MeshSizeCode %>%
-  dplyr::mutate(mesh_size_code = as.numeric(mesh_size_code)) %>%   # <- key fix
-  dplyr::group_by(sample_design_code) %>%
-  dplyr::summarise(
-    meshVec = list(sort(mesh_size_code)),
-    .groups = "drop"
-  )
-
-Collections <- vwFishCollection%>%
-  dplyr::select(region_code, WBID, gazetted_name, end_year, end_dt, method, net_angler_id, sample_design_code, gill_net_position_code, habitat_code, fishing_hours, comment, angling_rods,angling_method_code, terminal_gear_code, lake_lat,lake_long, shore_lat, shore_long, assess_event_name, fish_collection_id)%>%
-  dplyr::left_join(mesh_lookup, by = "sample_design_code")%>%
-  dplyr::ungroup()
-
-Collections<- Collections %>%
+vwFishCollection<<- vwFishCollection %>%
   dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
-relocate(locale_name, .after = WBID)
+  dplyr::relocate(locale_name, .after = WBID)
 
-#Add sample design code to Biological
-Biological <- Biological %>%
-  dplyr::left_join(Collections %>%
-                     dplyr::select(fish_collection_id, sample_design_code),
-            by = "fish_collection_id")
+vwCollectCount<<- vwCollectCount %>%
+  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+  dplyr::relocate(locale_name, .after = WBID)
 
-Biological <- add_selectivity(Biological, out_col = "NetX")
+vwWaterbodyLake<<- vwWaterbodyLake %>%
+  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+  dplyr::relocate(locale_name, .after = WBID)
 
 
 Biological<<-Biological
-Collections<<-Collections
 NR_sum<<-NR_sum
 Lake_Spp<<-Lake_Spp
 

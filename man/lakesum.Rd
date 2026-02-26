@@ -7,7 +7,7 @@
 \format{
 A data frame with 10 columns:
 \describe{
-  \item{region}{managment region, character}
+  \item{region_code}{managment region_code, character}
   \item{WBID}{Waterbody Identifie, character}
   \item{gazetted_name}{Gazetted waterbody name}
   \item{N_years}{the number of different calendar years with effort estimates, integer}

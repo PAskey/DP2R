@@ -99,17 +99,16 @@ if (!is.null(Genotypes)) {
 #Code below create categories that increase in width as size increases.
 idf <- idf%>%
   dplyr::mutate(SAR_cat = SAR_cat(wt_rel),
-                Season = metR::season(date_assessed),
+                #Season = metR::season(date_assessed),
                 #Season = dplyr::recode_factor(Season, MAM = "Spring", JJA = "Summer", SON = "Fall", DJF = "Winter"),
-                NetX = ifelse(.data$method == "GN"&.data$length_mm>75&.data$length_mm<650&.data$species_code %in% c("CT","EB","KO","RB","WCT"),
-                              1/SPDT::RICselect(FLengths_mm = .data$length_mm),1))%>%
+                )%>%
   tidyr::replace_na(list(NetX = 1))
 
 
 #Let's create a grouped data set
 #Summarize mean values for growth and tallies for numbers, etc. EXCLUDES OUTLIERS
 gdf <- idf%>%
-  dplyr::group_by(.data$locale_name, .data$WBID, .data$year, .data$Lk_yr, .data$Season, .data$method, .data$species_code, .data$Strain_rel,.data$Geno_rel, .data$Poss_Age, .data$age, .data$sby_code, .data$mark_code, .data$N_ha_rel, .data$wt_rel, .data$SAR_cat)%>%
+  dplyr::group_by(.data$locale_name, .data$WBID, .data$year, .data$Lk_yr, .data$Sample_event, .data$Season, .data$method, .data$species_code, .data$Strain_rel,.data$Geno_rel, .data$Poss_Age, .data$age, .data$sby_code, .data$mark_code, .data$N_ha_rel, .data$wt_rel, .data$SAR_cat)%>%
   dplyr::summarize( #Dec.Age = mean(.data$Dec.Age,na.rm = TRUE),
                     mean_FL = mean(.data$length_mm[.data$outlier%in%c(0,NA)], na.rm = TRUE),
                     sd_FL = sd(.data$length_mm[.data$outlier%in%c(0,NA)], na.rm = TRUE),
@@ -149,8 +148,8 @@ uni_events = idf%>%
 clipsdf = dplyr::left_join(uni_events[,c(1:3)], clipsdf, by = 'Lk_yr')%>%#Add sample date in below
           dplyr::filter(!is.na(species_code))#Remove cases that did not match a stocking event.
 ###################################################################################################################
-gdf = dplyr::full_join(gdf, clipsdf[,c("WBID", "Lk_yr", "year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
-                       by = c("WBID", "Lk_yr", "year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","wt_rel"))%>%
+gdf = dplyr::full_join(gdf, clipsdf[,c("WBID", "Lk_yr", "sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
+                       by = c("WBID", "Lk_yr", "year"="sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","wt_rel"))%>%
   dplyr::filter(Lk_yr%in%idf$Lk_yr)%>%#mark_code != "", Pulled this out to keep species comparisons
   dplyr::filter(dplyr::case_when(Contrast != "species_code"~ mark_code != "", TRUE ~ !is.na(N_ha_rel) ))%>%#, TRUE ~ mark_code %in% unique(mark_code)
   dplyr::mutate(N = replace(N, is.na(N), 0),
@@ -329,17 +328,17 @@ gdf = gdf%>%
 ids = unique(c(idf$Lk_yr, gdf$Lk_yr))
 spp = unique(c(idf$species_code, gdf$species_code))
 
-cdf <- Collections %>%
+cdf <- vwFishCollection %>%
   dplyr::mutate(
     Lk_yr = paste0(WBID, "_", end_year),
-    year = end_year,
-    Season = {
-      d <- as.Date(end_dt)                      # parse once
-      ok <- !is.na(d)                           # keep non-missing
-      out <- rep(NA_character_, dplyr::n())     # default NA
-      out[ok] <- as.character(metR::season(d[ok]))
-      out
-    }
+    #year = end_year,
+    #Season = {
+    #  d <- as.Date(end_dt)                      # parse once
+    #  ok <- !is.na(d)                           # keep non-missing
+    #  out <- rep(NA_character_, dplyr::n())     # default NA
+    #  out[ok] <- as.character(metR::season(d[ok]))
+    #  out
+    #}
   ) %>%
   dplyr::filter(Lk_yr %in% ids)%>%
   dplyr::group_by(region_code, Lk_yr, WBID, locale_name, year, Season, method
@@ -352,13 +351,13 @@ cdf <- Collections %>%
 counts = vwCollectCount%>%
   dplyr::mutate(
     Lk_yr = paste0(WBID, "_", lubridate::year(as.Date(date_assessed))),
-    Season = {
-      d <- as.Date(date_assessed)                      # parse once
-      ok <- !is.na(d)                           # keep non-missing
-      out <- rep(NA_character_, dplyr::n())     # default NA
-      out[ok] <- as.character(metR::season(d[ok]))
-      out
-    }
+    #Season = {
+    #  d <- as.Date(date_assessed)                      # parse once
+    #  ok <- !is.na(d)                           # keep non-missing
+    #  out <- rep(NA_character_, dplyr::n())     # default NA
+    #  out[ok] <- as.character(metR::season(d[ok]))
+     # out
+    #}
   )%>%
   dplyr::filter(Lk_yr %in% ids, species_code%in%spp)%>%
   dplyr::group_by(Lk_yr, Season, species_code)%>%
@@ -372,24 +371,24 @@ idf_cnts = idf%>%
   dplyr::filter(species_code%in%spp)%>%
   dplyr::group_by(region_code, Lk_yr, WBID, locale_name, year, Season, method)%>%
   dplyr::summarize(sp_meas = paste0(unique(na.omit(species_code)), collapse = ","),
-                    Measured = n())
+                    Measured = dplyr::n())
 
 cdf = cdf%>%
   dplyr::full_join(idf_cnts, by = c("region_code", "Lk_yr", "WBID", "locale_name", "year", "Season", "method")
 )
 
-#There are cases with fish, ut no netting details.
+#There are cases with fish, but no netting details.
 cdf <- cdf %>%
-  rowwise() %>%
-  mutate(
+  dplyr::rowwise() %>%
+  dplyr::mutate(
     species_code = {
       vals <- c(species_code, species, sp_meas)
       vals <- vals[!is.na(vals) & nzchar(trimws(vals)) & toupper(trimws(vals)) != "NA"]
       paste(unique(vals), collapse = ",")
     }
   ) %>%
-  ungroup()%>%
-  select(-c(species, sp_meas))
+  dplyr::ungroup()%>%
+  dplyr::select(-c(species, sp_meas))
 
 
 #Put data frames into the global environment

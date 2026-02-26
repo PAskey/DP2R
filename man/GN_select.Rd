@@ -4,7 +4,7 @@
 \alias{GN_select}
 \title{Gillnet selectivity at fork length}
 \usage{
-GN_select(species, length_mm, sample_design_code = "SGN7")
+GN_select(species, length_mm, sample_design_code = "SGN7", Sample_event = NULL)
 }
 \arguments{
 \item{species}{Species code(s).}
@@ -12,26 +12,24 @@ GN_select(species, length_mm, sample_design_code = "SGN7")
 \item{length_mm}{Fork length(s) in mm.}
 
 \item{sample_design_code}{Net/sample design code(s). Defaults to \code{"SGN7"}.}
+
+\item{Sample_event}{Optional Sample_event id(s). If provided, curves are pulled from
+\code{sel_lookup_event} instead of \code{sel_lookup}.}
 }
 \value{
-Numeric vector of selectivity values. Returns \code{NA_real_} when:
-\itemize{
-  \item \code{length_mm} is missing,
-  \item length is outside \code{sel_classes},
-  \item no curve exists for the (species, design) pair even after approximation.
-}
+Numeric vector of selectivity values (0--1) or NA.
 }
 \description{
 Returns relative gillnet selectivity (0--1) for one or more fish given
-species code, fork length (mm), and sample design code.
+species code, fork length (mm), and either sample design code OR
+Sample_event (which can have multiple sample_design_codes in the event).
 }
 \details{
-Selectivity curves are stored in \code{sel_lookup} on a shared length grid
-\code{sel_classes}. Species without direct curves are automatically mapped
-to proxy species using \code{approx_select_spp}.
+Curves are stored on a shared length grid \code{sel_classes}.
+Species without direct curves are mapped to proxy species using \code{approx_select_spp}.
 }
 \examples{
-GN_select("RB", 312, "SGN7")
-GN_select(c("RB","BT"), c(312, 580), "SGN7")
+GN_select("RB", 312, sample_design_code = "SGN7")
+GN_select("RB", 312, Sample_event = "GN_00394CHIL_SON")
 
 }

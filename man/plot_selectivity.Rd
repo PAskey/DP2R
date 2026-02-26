@@ -5,29 +5,35 @@
 \title{Plot precomputed gillnet selectivity curves}
 \usage{
 plot_selectivity(
-  sel_lookup = NULL,
-  approx_select_spp = NULL,
   species,
   design = "SGN7",
+  Sample_event = NULL,
+  plot_sub_designs = TRUE,
   classes = 75:900,
   facet = c("none", "species", "design"),
-  colour_by = c("auto", "species", "design", "interaction")
+  colour_by = c("auto", "species", "design", "interaction"),
+  approx_select_spp = NULL
 )
 }
 \arguments{
-\item{sel_lookup}{A data frame like \code{sel_lookup} containing at least
-\code{species_code}, \code{sample_design_code}, and a list-column \code{curve}
-with numeric vectors of selectivity values.
-If \code{NULL}, the function loads \code{sel_lookup} from package data.}
-
 \item{species}{Character vector of species codes to plot (e.g., \code{c("RB","EB")}).}
 
-\item{design}{Character vector of sample design codes to plot
-(e.g., \code{c("SGN7","FWIN")}).}
+\item{design}{Character vector of sample design codes to plot in design mode
+(e.g., \code{c("SGN7","FWIN")}). Ignored in event mode unless
+\code{plot_sub_designs = TRUE} and \code{sel_lookup_event$event_designs} is
+unavailable (in which case no sub-designs can be plotted).}
+
+\item{Sample_event}{Optional character vector of Sample_event IDs. If provided,
+event mode is used.}
+
+\item{plot_sub_designs}{Logical. In event mode, if \code{TRUE} (default),
+overlay design-level curves for the designs listed in
+\code{sel_lookup_event$event_designs} in addition to the overall event curve.
+If \code{FALSE}, only the overall event curve is plotted.}
 
 \item{classes}{Integer/numeric vector of lengths (mm) corresponding to the curve
 indices. Defaults to \code{75:900}. Must match the length range used when
-building \code{sel_lookup}.}
+building the lookup tables.}
 
 \item{facet}{One of \code{"none"}, \code{"species"}, or \code{"design"} indicating
 whether to facet the plot.}
@@ -35,45 +41,67 @@ whether to facet the plot.}
 \item{colour_by}{One of \code{"auto"}, \code{"species"}, \code{"design"},
 or \code{"interaction"}. If \code{facet != "none"}, this argument is ignored
 and colour is mapped to the non-faceted variable for consistent legend/colours.}
+
+\item{approx_select_spp}{A data frame like \code{approx_select_spp} that maps
+requested species codes to a proxy species code used for selectivity curves
+when a requested species is not present in \code{sel_lookup}. Must contain
+\code{species_code} (requested), \code{select_spp} (proxy), and the fork-length
+bounds \code{min_FL_gn} and \code{max_FL_gn} (used to highlight the observed
+range on the plot). If \code{NULL}, the function loads \code{approx_select_spp}
+from \pkg{DP2R} package data.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Plot relative gillnet selectivity curves from the precomputed lookup table
-\code{sel_lookup}. Curves can be compared across species within a net design,
-across net designs within a species, or across multiple species and designs.
+Plot relative gillnet selectivity curves from precomputed lookup tables in the
+\pkg{DP2R} package.
 }
 \details{
+The function has two modes:
+\itemize{
+  \item \strong{Design mode} (default): if \code{Sample_event} is \code{NULL},
+  curves are plotted from \code{sel_lookup} for the requested \code{design}(s).
+  \item \strong{Event mode}: if \code{Sample_event} is provided, the overall
+  event curve is plotted from \code{sel_lookup_event}. If
+  \code{plot_sub_designs = TRUE}, design-level curves for all designs used in
+  the event (from \code{sel_lookup_event$event_designs}) are also overlaid
+  using \code{sel_lookup}.
+}
+
 When faceting is used, the colour mapping is automatically forced to be
 consistent across facets (e.g., if faceting by design, colours represent
 species only; if faceting by species, colours represent designs only).
 
 
-The lookup table \code{sel_lookup} is typically built in \code{data-raw/} using
-\code{\link{predict_Millar}} and saved to the package \code{data/} directory.
-This plotting function does not recompute selectivity; it only visualizes
-precomputed curves.
+This function does not recompute selectivity; it only visualizes precomputed
+curves stored in \pkg{DP2R}. In event mode, the overall event curve comes from
+\code{sel_lookup_event}. If \code{plot_sub_designs = TRUE}, design-level curves
+are pulled from \code{sel_lookup} using the designs listed in the
+\code{event_designs} list-column.
 }
 \examples{
 \dontrun{
-data(sel_lookup)
-
-# Compare species within a single net design
+# Compare species within a single net design (design mode)
 plot_selectivity(species = c("RB","EB"), design = "SGN7")
 
-# Compare net designs within a single species
+# Compare net designs within a single species (design mode)
 plot_selectivity(species = "RB", design = c("SGN7","FWIN","SGN6"))
 
-# Facet by design, colours fixed by species
+# Facet by design, colours fixed by species (design mode)
 plot_selectivity(species = c("RB","EB"), design = c("SGN7","FWIN"), facet = "design")
 
-# Facet by species for sportfish, standard design
-plot_selectivity(species = c("BS","BT","CT","EB","KO", "LT","RB", "WCT","YP"), design = c("SGN7", "FWIN"), facet = "species")
+# Event mode: overall event curve only
+plot_selectivity(species = c("RB","KO"),
+                 Sample_event = "GN_00901LNIC_1990_SON",
+                 plot_sub_designs = FALSE,
+                 facet = "species")
 
-#' # Facet by species for non-sportfish, standard design
-plot_selectivity(species = c("BNH","LKC", "LSU","PCC", "NSC","CSU", "RSC"), design = c("SGN7"), facet = "species", colour_by = "species")
-
+# Event mode: overlay sub-design curves + overall event curve
+plot_selectivity(species = c("RB","KO"),
+                 Sample_event = "GN_00901LNIC_1990_SON",
+                 plot_sub_designs = TRUE,
+                 facet = "species")
 }
 
 }

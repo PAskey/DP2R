@@ -9,6 +9,7 @@ add_selectivity(
   species_col = "species_code",
   length_col = "length_mm",
   design_col = "sample_design_code",
+  sample_event_col = "Sample_event",
   method_col = "method",
   out_col = "select",
   default_design = "SGN7"
@@ -17,21 +18,19 @@ add_selectivity(
 \arguments{
 \item{df}{A data frame containing fish records.}
 
-\item{species_col}{Name of the species column. Defaults to \code{"species_code"}.}
+\item{species_col}{Name of the species column.}
 
-\item{length_col}{Name of the fork length column (mm). Defaults to \code{"length_mm"}.}
+\item{length_col}{Name of the fork length column (mm).}
 
-\item{design_col}{Name of the sample/net design column. Defaults to \code{"sample_design_code"}.}
+\item{design_col}{Name of the sample/net design column.}
 
-\item{method_col}{Name of the capture method column. Defaults to \code{"method"}.}
+\item{sample_event_col}{Name of Sample_event column (optional).}
 
-\item{out_col}{Name of the output column to add. Defaults to \code{"select"}.}
+\item{method_col}{Name of the capture method column.}
 
-\item{default_design}{Design code used when \code{design_col} is missing/NA
-for \code{method == "GN"}. Defaults to \code{"SGN7"}.}
-}
-\value{
-\code{df} with an added column \code{out_col}.
+\item{out_col}{Name of the output column to add.}
+
+\item{default_design}{Design code used when design is missing.}
 }
 \description{
 Adds a selectivity column to a data frame using \code{\link{GN_select}}.
@@ -40,12 +39,9 @@ Adds a selectivity column to a data frame using \code{\link{GN_select}}.
 Rules:
 \itemize{
   \item If \code{method_col} is not \code{"GN"}, selectivity is \code{NA}.
-  \item If \code{method_col} is \code{"GN"} and \code{design_col} is missing/NA,
-        \code{default_design} is used.
+  \item If \code{Sample_event} is present and non-missing, event-level
+        selectivity is used.
+  \item Otherwise, \code{sample_design_code} is used.
+  \item If GN and design is missing/NA, \code{default_design} is used.
 }
-}
-\examples{
-idf <- add_selectivity(idf, out_col = "NetX")
-
-
 }

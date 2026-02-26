@@ -177,7 +177,7 @@ best_models$meshSizes <- I(lapply(fits_list, `[[`, "mesh_mm"))
 
 best_models
 
-save(best_models, file = "data/best_models.rda")
-
+#save(best_models, file = "data/best_models.rda")
+usethis::use_data(best_models, overwrite = TRUE)
 
 

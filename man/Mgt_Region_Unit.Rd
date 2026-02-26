@@ -13,8 +13,8 @@ A data frame with 10 columns:
   \item{GNIS_NAME_3}{Alias, character}
   \item{WBID}{Waterbody Identifie, character}
   \item{Management_Unit}{wildlife management unit, character}
-  \item{region}{managment region code, character}
-  \item{RegionName}{managment region full name, character}
+  \item{region_code}{managment region_code code, character}
+  \item{RegionName}{managment region_code full name, character}
   \item{OBJECTID}{unique identifier provinical database, integer}
   \item{neighbour_mus}{comma separated list of wildlife managment units that are adjacent to wmu in column 5, character}
 }

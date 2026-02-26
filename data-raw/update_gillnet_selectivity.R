@@ -20,6 +20,7 @@ source("data-raw/Create_approx_select_spp.R")  # should create 'approx_select_sp
 
 # 4) Build/update sel_lookup (modify to use true ranges & store classes_min/max)
 source("data-raw/Create_sel_lookup.R")  # should create 'sel_lookup'
+source("data-raw/Create_sel_lookup_event.R")  # should create 'sel_lookup'
 
 # 5) Save packaged datasets
 usethis::use_data(best_models, approx_select_spp, sel_lookup, overwrite = TRUE)

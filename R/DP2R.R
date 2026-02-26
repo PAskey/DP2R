@@ -25,7 +25,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("LegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE) {
@@ -166,6 +166,37 @@ DP2R <- function(Tables = c("LegacyRelease","vwIndividualFish", "vwCollectCount"
       if (tb == "vwWaterbodyLake") {
         ret <- aggregate_vwWaterbodyLake(ret)
 
+      }
+      # ---------------------------------------------------------
+      # Add Season and Sample_event for specific assessment tables
+      # ---------------------------------------------------------
+      if (tb %in% c("vwFishCollection", "vwCollectCount", "vwIndividualFish")) {
+
+        if (tb %in% c("vwFishCollection", "vwCollectCount") && "end_dt" %in% names(ret)) {
+          ret <- ret %>% dplyr::filter(!is.na(end_dt))
+          date_vec <- as.POSIXct(ret$end_dt, tz = "UTC")
+
+        } else if (tb == "vwIndividualFish" && "date_assessed" %in% names(ret)) {
+          ret <- ret %>% dplyr::filter(!is.na(date_assessed))
+          date_vec <- as.POSIXct(ret$date_assessed, tz = "UTC")
+
+        } else {
+          date_vec <- NULL
+        }
+
+        if (!is.null(date_vec)) {
+
+          ret$Season <- metR::season(date_vec)
+          ret$year <- lubridate::year(date_vec)
+
+          ret$Sample_event <- stringr::str_c(
+            stringr::str_trim(ret$method),
+            stringr::str_trim(ret$WBID),
+            ret$year,
+            ret$Season,
+            sep = "_"
+          )
+        }
       }
     }
 

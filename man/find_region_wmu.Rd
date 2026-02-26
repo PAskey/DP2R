@@ -15,7 +15,7 @@ find_region_wmu(
   crs_work = 3005,
   lakes_wbid_field = "WATERBODY_KEY_GROUP_CODE_50K",
   wmu_id_field = "Management_Unit",
-  region_field = "region",
+  region_field = "region_code",
   region_name_field = "RegionName"
 )
 }
@@ -38,20 +38,20 @@ find_region_wmu(
 
 \item{wmu_id_field}{Column in \code{wmu} holding WMU id (default \code{"Management_Unit"}).}
 
-\item{region_field}{Column in \code{wmu} holding region id (default \code{"region"}).}
+\item{region_field}{Column in \code{wmu} holding region_code id (default \code{"region_code"}).}
 
-\item{region_name_field}{Column in \code{wmu} holding region name (default \code{"RegionName"}).}
+\item{region_name_field}{Column in \code{wmu} holding region_code name (default \code{"RegionName"}).}
 
 \item{lakes_record}{BC Data record for FWA lakes (default \code{"freshwater-atlas-lakes"}).}
 
 \item{wbid_chunk_size}{Max WBIDs per WFS request (default 400; reduce to 100 if service is flaky).}
 }
 \value{
-A \code{data.frame} with columns: \code{wmu}, \code{region}, \code{RegionName}.
+A \code{data.frame} with columns: \code{wmu}, \code{region_code}, \code{RegionName}.
   Same number of rows as the longest input among \code{lon/lat/WBID}.
 }
 \description{
-Efficiently populates Wildlife Management Unit (WMU) and associated region fields.
+Efficiently populates Wildlife Management Unit (WMU) and associated region_code fields.
 Uses WGS84 coordinates first (fast point-in-polygon), then fills remaining gaps using
 WBID -> Freshwater Atlas lake polygons (server-side filtered) -> WMU.
 }

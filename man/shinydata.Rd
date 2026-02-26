@@ -7,7 +7,7 @@
 \format{
 A data frame with 18 columns:
 \describe{
-  \item{region}{managment region, character}
+  \item{region_code}{managment region_code, character}
   \item{WBID}{Waterbody Identifie, character}
   \item{gazetted_name}{Gazetted waterbody name}
   \item{view_location_name}{A unique name given to a specific viewpoint of a lake by camera or ground}

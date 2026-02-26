@@ -361,3 +361,47 @@ NULL
 #' @docType data
 #' @name sel_classes
 NULL
+
+
+# ----------------------------------------------------------------------
+#' Event-level Gillnet Selectivity Lookup
+#'
+#' A lookup table of gillnet selectivity curves aggregated at the
+#' \code{Sample_event} level. Each curve represents the effort-weighted
+#' combination of all gillnet designs deployed during that event.
+#'
+#' Curves are weighted by:
+#' \deqn{
+#' w_i = panel\_area\_total_i \times fishing\_hours_i
+#' }
+#' where \eqn{i} indexes sample design codes used within a given
+#' \code{Sample_event}.
+#'
+#' Only species observed in a given \code{Sample_event} are included.
+#' Events with no valid \code{sample_design_code} values are omitted.
+#'
+#' All curves are defined on the shared length grid \code{sel_classes}
+#' and scaled to range from 0 to 1.
+#'
+#' @format A tibble with the following columns:
+#' \describe{
+#'   \item{Sample_event}{Character. Event identifier constructed as
+#'     \code{method_WBID_Season}.}
+#'   \item{species_code}{Character. Species code.}
+#'   \item{curve}{List-column of numeric vectors. Relative selectivity
+#'     values aligned to \code{sel_classes}.}
+#'   \item{effort_total}{Numeric. Total effort weight used to compute the
+#'     aggregated curve (area × time).}
+#'   \item{n_designs}{Integer. Number of unique sample design codes
+#'     contributing to the event-level curve.}
+#'     \item{event_designs}{List column of character vectors. ALl gillnet designs used within a sample_event.}
+#' }
+#'
+#' @details
+#' This dataset is generated programmatically using
+#' \code{build_sel_lookup_event_observed()} and is intended for use with
+#' \code{GN_select()} when the \code{Sample_event} argument is supplied.
+#'
+#' @source DataPond database (vwFishCollection, vwIndividualFish,
+#' SampleDesign_MeshSizeCode)
+"sel_lookup_event"

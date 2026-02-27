@@ -184,8 +184,8 @@ Biological = Biological%>%
 
 #IDENTIFY OUTLIERS
 Biological <- Biological%>%
-  dplyr::mutate(outlier = ifelse(is.na(.data$length_mm)|.data$length_mm>900|.data$species_code%in%c("UNK","NFC","NFP"),1,
-                                 ifelse(!is.na(.data$weight_g)&.data$species_code %in% c('ACT','CT','WCT','CRS','RBCT','RB','KO','EB','DV','BT','GB','TR','ST') &
+  dplyr::mutate(outlier = ifelse(is.na(.data$length_mm)|.data$length_mm>900,1,
+                                 ifelse(!is.na(.data$weight_g)&.data$species_code %in% c('ACT','CT','CCT','WCT','CRS','RBCT','RB','KO','EB','CO','DV','BT','GB','TR','ST') &
                                           (!(.data$length_mm %in% c(60:1000)) | 0.65 > .data$condition_factor | 2.25 < .data$condition_factor),1,0)
   ))
 

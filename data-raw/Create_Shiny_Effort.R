@@ -4,24 +4,15 @@ library(DP2R)
 library(dplyr)
 EffortEst(update.model = TRUE)
 
-#VILQ = read.csv("data-raw/VILQ.csv")
+shinydata = EffortEsts
 
-#VILQ = VILQ%>%left_join(Lakes[,c("region","WBID","gazetted_name","area_ha")])%>%mutate(Angler_days_p_ha = round(Angler_days/area_ha,1))
-
-#shinydata = shinydata%>%filter(method!="VILQ")
-
-#data(package = "DP2R")
-
-shinydata = EffortEsts%>%
-  full_join(VILQ, by = c("region","WBID","gazetted_name","year","method", "Angler_days","Angler_days_p_ha","area_ha"))%>%
-  mutate(area_ha = round(area_ha,1))
-
-
-shinydata = dplyr::left_join(shinydata, Lakes[,c("WBID","lake_latitude","lake_longitude")], by = "WBID")
+shinydata = dplyr::left_join(shinydata,
+                             Lakes[,c("WBID","lake_latitude","lake_longitude")],
+                             by = "WBID")
 
 #Lake by lake summary of effort data
 lakesum <- shinydata %>%
-  dplyr::group_by(region, WBID, gazetted_name, lake_latitude,lake_longitude) %>%
+  dplyr::group_by(region_code, WBID, gazetted_name, lake_latitude,lake_longitude) %>%
   dplyr::summarise(N_years = length(unique(year)),
                    min_year = min(year),
                    max_year = max(year),

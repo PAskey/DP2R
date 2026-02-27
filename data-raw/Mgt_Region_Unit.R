@@ -101,12 +101,12 @@ wmu <- bc_wmu |>
   dplyr::select(WILDLIFE_MGMT_UNIT_ID, REGION_RESPONSIBLE_ID, REGION_RESPONSIBLE_NAME, OBJECTID, geometry) |>
   dplyr::rename(
     Management_Unit = WILDLIFE_MGMT_UNIT_ID,
-    region = REGION_RESPONSIBLE_ID,
+    region_code = REGION_RESPONSIBLE_ID,
     RegionName = REGION_RESPONSIBLE_NAME
   )
 
 #There is an error in the dataset assigning 7B to Omineca instead of Peace
-wmu$RegionName[wmu$region == "7B"]<-"Peace"
+wmu$RegionName[wmu$region_code == "7B"]<-"Peace"
 
 #standardize names
 normalize_key <- function(x) {
@@ -123,37 +123,37 @@ Mgt_Region_Unit <- wmu_from_waterbody_id(
   lakes = lakes
 )
 
-# 1) Keys already present in Mgt_Region_Unit (by name+region)
+# 1) Keys already present in Mgt_Region_Unit (by name+region_code)
 mru1 <- Mgt_Region_Unit %>%
   mutate(name_key = normalize_key(gazetted_name),
          WBID = as.character(WBID))
 
 used_pairs <- mru1 %>%
   filter(!is.na(WBID) & WBID != "") %>%
-  distinct(name_key, region, WBID)
+  distinct(name_key, region_code, WBID)
 
 # 2) Candidate WBIDs from vwWaterbody (by same keys)
 candidates <- vwWaterbodyLake %>%
   transmute(name_key = normalize_key(gazetted_name),
-            region   = region,
+            region_code   = region_code,
             WBID     = as.character(WBID)) %>%
   filter(!is.na(WBID) & WBID != "") %>%
   distinct()
 
-# 3) Drop candidates that are already used for that (name_key, region)
+# 3) Drop candidates that are already used for that (name_key, region_code)
 remaining <- anti_join(candidates, used_pairs,
-                       by = c("name_key","region","WBID"))
+                       by = c("name_key","region_code","WBID"))
 
-# 4) Keep ONLY (name_key, region) where exactly ONE WBID remains
+# 4) Keep ONLY (name_key, region_code) where exactly ONE WBID remains
 singles <- remaining %>%
-  count(name_key, region, name = "n_left") %>%
+  count(name_key, region_code, name = "n_left") %>%
   filter(n_left == 1) %>%
-  left_join(remaining, by = c("name_key","region")) %>%
-  select(name_key, region, WBID_fill = WBID)
+  left_join(remaining, by = c("name_key","region_code")) %>%
+  select(name_key, region_code, WBID_fill = WBID)
 
 # 5) Join this one-to-one map and fill only where WBID is NA/blank
 Mgt_Region_Unit <- mru1 %>%
-  left_join(singles, by = c("name_key","region")) %>%
+  left_join(singles, by = c("name_key","region_code")) %>%
   mutate(WBID = if_else(is.na(WBID) | WBID == "", WBID_fill, WBID)) %>%
   select(-WBID_fill, -name_key)
 
@@ -209,6 +209,10 @@ Mgt_Region_Unit <- dplyr::left_join(
   neighbour_map,
   by = "Management_Unit"
 )
+
+#Make letters lower case
+Mgt_Region_Unit$region_code <-tolower(Mgt_Region_Unit$region_code)
+
 end <- Sys.time()
 runtime = end-start
 

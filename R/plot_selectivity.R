@@ -1,97 +1,43 @@
-#' Plot precomputed gillnet selectivity curves
+#' Plot relative selectivity curves by species, design, and/or sampling event
 #'
-#' Plot relative gillnet selectivity curves from precomputed lookup tables in the
-#' \pkg{DP2R} package.
+#' @description
+#' Creates selectivity curves from the \code{DP2R} package lookup tables
+#' (\code{sel_lookup} and \code{sel_lookup_event}). You can plot by net
+#' \code{design}, by \code{Sample_event}, and optionally include event-level
+#' (overall) curves plus the sub-design curves associated with each event.
 #'
-#' The function has two modes:
+#' This version adds:
 #' \itemize{
-#'   \item \strong{Design mode} (default): if \code{Sample_event} is \code{NULL},
-#'   curves are plotted from \code{sel_lookup} for the requested \code{design}(s).
-#'   \item \strong{Event mode}: if \code{Sample_event} is provided, the overall
-#'   event curve is plotted from \code{sel_lookup_event}. If
-#'   \code{plot_sub_designs = TRUE}, design-level curves for all designs used in
-#'   the event (from \code{sel_lookup_event$event_designs}) are also overlaid
-#'   using \code{sel_lookup}.
+#'   \item Faceting by \code{Sample_event} via \code{facet = "event"} (when \code{Sample_event} is supplied)
+#'   \item Correct replication of design-level curves to each \code{Sample_event} so faceting works
+#'   \item Event-level \dQuote{Overall (event)} curve is always drawn first in ordering and drawn thicker in black
 #' }
 #'
-#' When faceting is used, the colour mapping is automatically forced to be
-#' consistent across facets (e.g., if faceting by design, colours represent
-#' species only; if faceting by species, colours represent designs only).
-#'
-#' @param species Character vector of species codes to plot (e.g., \code{c("RB","EB")}).
-#' @param design Character vector of sample design codes to plot in design mode
-#'   (e.g., \code{c("SGN7","FWIN")}). Ignored in event mode unless
-#'   \code{plot_sub_designs = TRUE} and \code{sel_lookup_event$event_designs} is
-#'   unavailable (in which case no sub-designs can be plotted).
-#' @param Sample_event Optional character vector of Sample_event IDs. If provided,
-#'   event mode is used.
-#' @param plot_sub_designs Logical. In event mode, if \code{TRUE} (default),
-#'   overlay design-level curves for the designs listed in
-#'   \code{sel_lookup_event$event_designs} in addition to the overall event curve.
-#'   If \code{FALSE}, only the overall event curve is plotted.
-#' @param classes Integer/numeric vector of lengths (mm) corresponding to the curve
-#'   indices. Defaults to \code{75:900}. Must match the length range used when
-#'   building the lookup tables.
-#' @param facet One of \code{"none"}, \code{"species"}, or \code{"design"} indicating
-#'   whether to facet the plot.
-#' @param colour_by One of \code{"auto"}, \code{"species"}, \code{"design"},
-#'   or \code{"interaction"}. If \code{facet != "none"}, this argument is ignored
-#'   and colour is mapped to the non-faceted variable for consistent legend/colours.
-#' @param approx_select_spp A data frame like \code{approx_select_spp} that maps
-#'   requested species codes to a proxy species code used for selectivity curves
-#'   when a requested species is not present in \code{sel_lookup}. Must contain
-#'   \code{species_code} (requested), \code{select_spp} (proxy), and the fork-length
-#'   bounds \code{min_FL_gn} and \code{max_FL_gn} (used to highlight the observed
-#'   range on the plot). If \code{NULL}, the function loads \code{approx_select_spp}
-#'   from \pkg{DP2R} package data.
+#' @param species Character vector of requested species codes (e.g., \code{"KO"}).
+#' @param design Character vector of net design codes (e.g., \code{"SGN7"}).
+#'   Only used when \code{Sample_event} is \code{NULL}.
+#' @param Sample_event Optional character vector of sample event IDs. If supplied,
+#'   curves are sourced from \code{sel_lookup_event} (plus optional sub-design curves).
+#' @param plot_sub_designs Logical; when \code{TRUE} and \code{Sample_event} is supplied,
+#'   also plot the sub-design curves listed in \code{sel_lookup_event$event_designs}.
+#' @param classes Numeric vector of fork-length classes (mm). Must align with curve length.
+#' @param facet Faceting mode: \code{"none"}, \code{"species"}, \code{"design"}, or \code{"event"}.
+#'   \code{"event"} facets by \code{Sample_event} (only meaningful when \code{Sample_event} is supplied).
+#' @param colour_by Colour grouping: \code{"auto"}, \code{"species"}, \code{"design"}, or \code{"interaction"}.
+#' @param approx_select_spp Optional table used to approximate requested species when not
+#'   present in \code{sel_lookup}. If \code{NULL}, loaded from \code{DP2R::approx_select_spp}.
 #'
 #' @return A \code{ggplot} object.
 #'
-#' @details
-#' This function does not recompute selectivity; it only visualizes precomputed
-#' curves stored in \pkg{DP2R}. In event mode, the overall event curve comes from
-#' \code{sel_lookup_event}. If \code{plot_sub_designs = TRUE}, design-level curves
-#' are pulled from \code{sel_lookup} using the designs listed in the
-#' \code{event_designs} list-column.
-#'
-#' @examples
-#' \dontrun{
-#' # Compare species within a single net design (design mode)
-#' plot_selectivity(species = c("RB","EB"), design = "SGN7")
-#'
-#' # Compare net designs within a single species (design mode)
-#' plot_selectivity(species = "RB", design = c("SGN7","FWIN","SGN6"))
-#'
-#' # Facet by design, colours fixed by species (design mode)
-#' plot_selectivity(species = c("RB","EB"), design = c("SGN7","FWIN"), facet = "design")
-#'
-#' # Event mode: overall event curve only
-#' plot_selectivity(species = c("RB","KO"),
-#'                  Sample_event = "GN_00901LNIC_1990_SON",
-#'                  plot_sub_designs = FALSE,
-#'                  facet = "species")
-#'
-#' # Event mode: overlay sub-design curves + overall event curve
-#' plot_selectivity(species = c("RB","KO"),
-#'                  Sample_event = "GN_00901LNIC_1990_SON",
-#'                  plot_sub_designs = TRUE,
-#'                  facet = "species")
-#' }
-#'
-#' @importFrom dplyr filter mutate case_when
-#' @importFrom tidyr unnest_longer
-#' @importFrom ggplot2 ggplot aes geom_line labs theme_bw facet_wrap
 #' @export
-plot_selectivity <- function(
-    species,
-    design = "SGN7",
-    Sample_event = NULL,
-    plot_sub_designs = TRUE,
-    classes = 75:900,
-    facet = c("none", "species", "design"),
-    colour_by = c("auto", "species", "design", "interaction"),
-    approx_select_spp = NULL
-) {
+plot_selectivity <- function(species,
+                             design = "SGN7",
+                             Sample_event = NULL,
+                             plot_sub_designs = TRUE,
+                             classes = 75:900,
+                             facet = c("none", "species", "design", "event"),
+                             colour_by = c("auto", "species", "design", "interaction"),
+                             approx_select_spp = NULL) {
 
   colour_by_user <- !missing(colour_by)
   facet <- match.arg(facet)
@@ -99,7 +45,6 @@ plot_selectivity <- function(
 
   stopifnot(is.numeric(classes), length(classes) > 1)
 
-  # ---- Decide event mode ----
   ev <- character(0)
   if (!is.null(Sample_event)) {
     ev <- unique(as.character(Sample_event))
@@ -111,7 +56,7 @@ plot_selectivity <- function(
     stop("plot_selectivity(): package 'DP2R' is required but not installed.", call. = FALSE)
   }
 
-  # ---- Load lookups from DP2R ----
+  # Load lookups
   utils::data("sel_lookup", package = "DP2R", envir = environment())
   sel_lookup <- get("sel_lookup", envir = environment(), inherits = FALSE)
 
@@ -122,10 +67,9 @@ plot_selectivity <- function(
     req_event_cols <- c("Sample_event", "species_code", "curve")
     miss <- setdiff(req_event_cols, names(sel_lookup_event))
     if (length(miss) > 0) {
-      stop("plot_selectivity(): sel_lookup_event is missing: ",
-           paste(miss, collapse = ", "), call. = FALSE)
+      stop("plot_selectivity(): sel_lookup_event is missing: ", paste(miss, collapse = ", "),
+           call. = FALSE)
     }
-
     if (isTRUE(plot_sub_designs) && !("event_designs" %in% names(sel_lookup_event))) {
       stop("plot_selectivity(): plot_sub_designs=TRUE requires sel_lookup_event to have an 'event_designs' list-column.",
            call. = FALSE)
@@ -134,32 +78,31 @@ plot_selectivity <- function(
     req_cols <- c("species_code", "sample_design_code", "curve")
     miss <- setdiff(req_cols, names(sel_lookup))
     if (length(miss) > 0) {
-      stop("plot_selectivity(): sel_lookup is missing: ",
-           paste(miss, collapse = ", "), call. = FALSE)
+      stop("plot_selectivity(): sel_lookup is missing: ", paste(miss, collapse = ", "),
+           call. = FALSE)
     }
   }
 
-  # ---- Load approx_select_spp (if not supplied) ----
   if (is.null(approx_select_spp)) {
     utils::data("approx_select_spp", package = "DP2R", envir = environment())
     approx_select_spp <- get("approx_select_spp", envir = environment(), inherits = FALSE)
   }
 
-  # ---- Map requested species -> species actually used in sel_lookup ----
+  # --- species mapping / approximation logic (same as your original) ---
   sel_species <- unique(as.character(sel_lookup$species_code))
   species_req <- unique(as.character(species))
 
-  mapping <- tibble::tibble(species_req = species_req) %>%
+  mapping <- tibble::tibble(species_req = species_req) |>
     dplyr::left_join(
-      approx_select_spp %>%
+      approx_select_spp |>
         dplyr::transmute(
-          species_req  = as.character(species_code),
-          species_use  = as.character(select_spp),
-          min_FL       = min_FL_gn,
-          max_FL       = max_FL_gn
+          species_req = as.character(species_code),
+          species_use = as.character(select_spp),
+          min_FL = min_FL_gn,
+          max_FL = max_FL_gn
         ),
       by = "species_req"
-    ) %>%
+    ) |>
     dplyr::mutate(
       species_use = dplyr::case_when(
         species_req %in% sel_species ~ species_req,
@@ -167,86 +110,93 @@ plot_selectivity <- function(
       )
     )
 
-  mapping_ok <- mapping %>% dplyr::filter(!is.na(species_use))
+  mapping_ok <- mapping |>
+    dplyr::filter(!is.na(species_use))
+
   if (nrow(mapping_ok) == 0) {
     stop("None of the requested species exist in sel_lookup and no usable approximations were found.",
          call. = FALSE)
   }
 
-  # ---- Build pieces to plot ----
   pieces <- list()
 
   if (use_event) {
-    # Overall event curve(s)
-    df_event <- sel_lookup_event %>%
+    # Event-level curves (already have Sample_event)
+    df_event <- sel_lookup_event |>
       dplyr::mutate(
-        Sample_event = as.character(.data$Sample_event),
-        species_code = as.character(.data$species_code)
-      ) %>%
+        Sample_event = as.character(Sample_event),
+        species_code = as.character(species_code)
+      ) |>
       dplyr::filter(
-        .data$Sample_event %in% ev,
-        .data$species_code %in% mapping_ok$species_use
-      ) %>%
+        Sample_event %in% ev,
+        species_code %in% mapping_ok$species_use
+      ) |>
       dplyr::mutate(sample_design_code = "Overall (event)")
 
     pieces[["event"]] <- df_event
 
-    # Optional: sub-design curves from sel_lookup
     if (isTRUE(plot_sub_designs)) {
+      # Key of (Sample_event, species_code, design) from event_designs
+      event_design_key <- sel_lookup_event |>
+        dplyr::mutate(
+          Sample_event = as.character(Sample_event),
+          species_code = as.character(species_code)
+        ) |>
+        dplyr::filter(Sample_event %in% ev) |>
+        dplyr::select(Sample_event, species_code, event_designs) |>
+        tidyr::unnest_longer(event_designs, values_to = "sample_design_code") |>
+        dplyr::mutate(
+          sample_design_code = stringr::str_trim(as.character(sample_design_code))
+        ) |>
+        dplyr::filter(!is.na(sample_design_code), sample_design_code != "") |>
+        dplyr::distinct(Sample_event, species_code, sample_design_code)
 
-      # collect all designs for the requested event(s)
-      dsgns <- sel_lookup_event %>%
-        dplyr::filter(.data$Sample_event %in% ev) %>%
-        dplyr::pull(.data$event_designs) %>%
-        unlist(use.names = FALSE) %>%
-        as.character()
-
-      dsgns <- stringr::str_trim(dsgns)
-      dsgns <- unique(dsgns[!is.na(dsgns) & dsgns != ""])
+      dsgns <- unique(event_design_key$sample_design_code)
 
       if (length(dsgns) == 0) {
         warning("plot_selectivity(): plot_sub_designs=TRUE but no designs found in sel_lookup_event$event_designs for the requested Sample_event(s).",
                 call. = FALSE)
       } else {
-        df_design <- sel_lookup %>%
+        # Design curves from sel_lookup (no Sample_event)...
+        df_design <- sel_lookup |>
           dplyr::mutate(
-            species_code = as.character(.data$species_code),
-            sample_design_code = as.character(.data$sample_design_code)
-          ) %>%
+            species_code = as.character(species_code),
+            sample_design_code = as.character(sample_design_code)
+          ) |>
           dplyr::filter(
-            .data$species_code %in% mapping_ok$species_use,
-            .data$sample_design_code %in% dsgns
+            species_code %in% mapping_ok$species_use,
+            sample_design_code %in% dsgns
           )
 
-        pieces[["design"]] <- df_design
+        # ...replicated per Sample_event by joining to the key
+        df_design_ev <- event_design_key |>
+          dplyr::inner_join(df_design, by = c("species_code" = "species_code",
+                                              "sample_design_code" = "sample_design_code"))
+
+        pieces[["design"]] <- df_design_ev
       }
     }
-
   } else {
-    # Design-only mode (original behaviour)
-    df_design <- sel_lookup %>%
+    # Design-only mode
+    df_design <- sel_lookup |>
       dplyr::mutate(
-        species_code = as.character(.data$species_code),
-        sample_design_code = as.character(.data$sample_design_code)
-      ) %>%
+        species_code = as.character(species_code),
+        sample_design_code = as.character(sample_design_code)
+      ) |>
       dplyr::filter(
-        .data$species_code %in% mapping_ok$species_use,
-        .data$sample_design_code %in% as.character(design)
+        species_code %in% mapping_ok$species_use,
+        sample_design_code %in% as.character(design)
       )
-
     pieces[["design"]] <- df_design
   }
 
   df <- dplyr::bind_rows(pieces)
   if (nrow(df) == 0) stop("No curves found for requested filters.", call. = FALSE)
 
-  # ---- Attach requested species labels ----
-  df <- df %>%
-    dplyr::inner_join(
-      mapping_ok,
-      by = c("species_code" = "species_use"),
-      relationship = "many-to-many"
-    ) %>%
+  # Map back to requested species label
+  df <- df |>
+    dplyr::inner_join(mapping_ok, by = c("species_code" = "species_use"),
+                      relationship = "many-to-many") |>
     dplyr::mutate(
       species_display = dplyr::if_else(
         species_req == species_code,
@@ -255,10 +205,11 @@ plot_selectivity <- function(
       )
     )
 
-  # ---- Colour behaviour (unchanged) ----
+  # Auto colour choice (mirrors original behavior + event)
   if (!colour_by_user && colour_by == "auto") {
-    if (facet == "design")  colour_by <- "species"
+    if (facet == "design") colour_by <- "species"
     if (facet == "species") colour_by <- "design"
+    if (facet == "event")   colour_by <- "design"
   }
 
   if (facet == "none" && colour_by == "auto") {
@@ -271,40 +222,77 @@ plot_selectivity <- function(
     }
   }
 
-  df_long <- df %>%
-    tidyr::unnest_longer(curve, indices_to = "idx") %>%
+  # Force "Overall (event)" to be the first level
+  other_levels <- sort(unique(as.character(df$sample_design_code[df$sample_design_code != "Overall (event)"])))
+  df$sample_design_code <- factor(as.character(df$sample_design_code),
+                                  levels = c("Overall (event)", other_levels))
+
+  # Long format
+  df_long <- df |>
+    tidyr::unnest_longer(curve, indices_to = "idx") |>
     dplyr::mutate(
       length_mm = classes[idx],
-      line_id   = paste(species_display, sample_design_code, sep = " | "),
-      colour_id = dplyr::case_when(
-        colour_by == "species" ~ species_display,
-        colour_by == "design"  ~ sample_design_code,
-        TRUE ~ paste(species_display, sample_design_code, sep = " | ")
-      ),
+      is_overall = (as.character(sample_design_code) == "Overall (event)"),
+      line_id = paste(species_display, sample_design_code, sep = " | ")
+    ) |>
+    dplyr::arrange(
+      dplyr::coalesce(Sample_event, ""),
+      species_display,
+      sample_design_code,
+      length_mm
+    )
+
+  # Guard against mismatch
+  if (max(df_long$idx, na.rm = TRUE) > length(classes)) {
+    stop("plot_selectivity(): 'classes' length (", length(classes),
+         ") is shorter than curve index max (", max(df_long$idx, na.rm = TRUE), ").",
+         call. = FALSE)
+  }
+
+  # Colour grouping without scalar-case_when (avoids dplyr warning)
+  if (colour_by == "species") {
+    df_long$colour_id <- df_long$species_display
+    legend_title <- "Species"
+  } else if (colour_by == "design") {
+    df_long$colour_id <- as.character(df_long$sample_design_code)
+    legend_title <- "Net design"
+  } else {
+    df_long$colour_id <- paste(df_long$species_display, df_long$sample_design_code, sep = " | ")
+    legend_title <- "Species | Net"
+  }
+
+  # Range highlighting (same logic as original)
+  df_long <- df_long |>
+    dplyr::mutate(
       in_range = dplyr::if_else(
         is.na(min_FL) | is.na(max_FL),
         TRUE,
         length_mm >= min_FL & length_mm <= max_FL
       )
-    ) %>%
-    dplyr::arrange(species_display, sample_design_code, length_mm)
+    )
 
-  legend_title <- dplyr::case_when(
-    colour_by == "species" ~ "Species",
-    colour_by == "design"  ~ "Net design",
-    TRUE ~ "Species | Net"
+  # Use base::interaction() (NOT dplyr::interaction)
+  group_id <- interaction(
+    dplyr::coalesce(df_long$Sample_event, ""),
+    df_long$line_id,
+    drop = TRUE
   )
+  df_long$group_id <- group_id
 
+  # Plot
   p <- ggplot2::ggplot(df_long, ggplot2::aes(length_mm, curve)) +
+    ggplot2::geom_line(aes(group = group_id), colour = "grey75", linewidth = 0.8) +
     ggplot2::geom_line(
-      ggplot2::aes(group = line_id),
-      colour = "grey75",
-      linewidth = 0.8
-    ) +
-    ggplot2::geom_line(
-      data = dplyr::filter(df_long, in_range),
-      ggplot2::aes(group = line_id, colour = colour_id),
+      data = dplyr::filter(df_long, in_range, !is_overall),
+      ggplot2::aes(group = group_id, colour = colour_id),
       linewidth = 1.3
+    ) +
+    # Overall curve: black + thicker, drawn last so it sits on top
+    ggplot2::geom_line(
+      data = dplyr::filter(df_long, is_overall),
+      ggplot2::aes(group = group_id),
+      colour = "black",
+      linewidth = 1.8
     ) +
     ggplot2::labs(
       x = "Fork length (mm)",
@@ -313,10 +301,18 @@ plot_selectivity <- function(
     ) +
     ggplot2::theme_bw()
 
+  # Faceting
   if (facet == "species") {
-    p <- p + ggplot2::facet_wrap(~ species_display)
+    p <- p + ggplot2::facet_wrap(~species_display)
   } else if (facet == "design") {
-    p <- p + ggplot2::facet_wrap(~ sample_design_code)
+    p <- p + ggplot2::facet_wrap(~sample_design_code)
+  } else if (facet == "event") {
+    if (!use_event) {
+      warning("plot_selectivity(): facet='event' requested but no Sample_event supplied; using facet='none'.",
+              call. = FALSE)
+    } else {
+      p <- p + ggplot2::facet_wrap(~Sample_event)
+    }
   }
 
   p

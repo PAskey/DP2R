@@ -41,7 +41,11 @@
 #' @importFrom rlang .data
 
 
-SPDTdata <- function(Spp = NULL, Contrast = c("species_code", "Strain_rel", "SAR_cat", "Geno_rel"), drop_controls = NULL, Strains = NULL, Genotypes = NULL, filters = NULL, Data_source = TRUE){
+SPDTdata <- function(Spp = NULL,
+                     Contrast = c("species_code", "Strain_rel", "SAR_cat", "Geno_rel"),
+                     drop_controls = NULL, Strains = NULL, Genotypes = NULL,
+                     filters = NULL,
+                     Data_source = TRUE){
 
   if (missing(Contrast)) {
     Contrast <- NULL
@@ -139,19 +143,27 @@ clipsdf<-clipsdf%>%
 #Can't add avg_sampling date within gdf, because will be different for each strain, age, etc.
 idf$date_assessed = as.POSIXct(idf$date_assessed)
 uni_events = idf%>%
-  dplyr::group_by(Lk_yr, Season, method)%>%
+  dplyr::group_by(Lk_yr, Sample_event, Season, method)%>%
   dplyr::summarize(avg_sample_date = round(mean(.data$date_assessed,na.rm = TRUE), units = "days"))%>%
   dplyr::ungroup()
 
 #Gives same result with left or right join
 #Join this with clipsdf, so all releases that should appear in a sampling event are tracked.
-clipsdf = dplyr::left_join(uni_events[,c(1:3)], clipsdf, by = 'Lk_yr')%>%#Add sample date in below
+clipsdf = dplyr::left_join(uni_events[,c(1:4)], clipsdf, by = 'Lk_yr')%>%#Add sample date in below
           dplyr::filter(!is.na(species_code))#Remove cases that did not match a stocking event.
 ###################################################################################################################
-gdf = dplyr::full_join(gdf, clipsdf[,c("WBID", "Lk_yr", "sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
-                       by = c("WBID", "Lk_yr", "year"="sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","wt_rel"))%>%
-  dplyr::filter(Lk_yr%in%idf$Lk_yr)%>%#mark_code != "", Pulled this out to keep species comparisons
-  dplyr::filter(dplyr::case_when(Contrast != "species_code"~ mark_code != "", TRUE ~ !is.na(N_ha_rel) ))%>%#, TRUE ~ mark_code %in% unique(mark_code)
+gdf = dplyr::full_join(gdf, clipsdf[,c("locale_name","WBID", "Lk_yr", "Sample_event","sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
+                       by = c("locale_name","WBID", "Lk_yr","Sample_event", "year"="sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","wt_rel"))%>%
+  dplyr::filter(Lk_yr%in%idf$Lk_yr)
+
+#Keep species comparisons that will not have a mark
+if (Contrast != "species_code") {
+  gdf <- gdf %>% dplyr::filter(mark_code != "")
+} else {
+  gdf <- gdf %>% dplyr::filter(!is.na(N_ha_rel))
+}
+
+gdf <- gdf %>%
   dplyr::mutate(N = replace(N, is.na(N), 0),
                 NetXN = replace(NetXN, is.na(NetXN), 0),
                 #avg_rel_date = pmax(avg_rel_date.x, avg_rel_date.y, na.rm = TRUE),
@@ -163,7 +175,7 @@ gdf = dplyr::full_join(gdf, clipsdf[,c("WBID", "Lk_yr", "sample_year", "Season",
 #####################################################################################################################
 
 #Have to add in average sample data at this point, otherwise it is NA for all cases of non-clips, etc.
-gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Season", "method"))%>%
+gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Sample_event","Season", "method"))%>%
   dplyr::mutate(
     Dec.Age = round(.data$age+(lubridate::decimal_date(.data$avg_sample_date) - year),2),
     Delta_t = as.numeric(difftime(avg_sample_date,avg_rel_date, units = "days")))
@@ -212,7 +224,7 @@ gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",get(Contrast)),
 predf = gdf%>%
   #dplyr::filter(mean_FL>150)%>%
   dplyr::group_by(dplyr::across(dplyr::all_of(c(
-    "Lk_yr","WBID","locale_name","year","Season","method","age",
+    "Lk_yr","Sample_event","WBID","locale_name","year","Season","method","age",
     controls, Contrast   # Contrast is included via Covariates, but spelled out here for clarity
   ))))%>%#, sby_code
   dplyr::filter(!is.na(.data[[Contrast]]),

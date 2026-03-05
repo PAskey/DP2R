@@ -45,7 +45,7 @@ if(!exists("Releases")){stop("Need to start with a data load from SLD (i.e. Data
 
 #Number of unique clips potentially at large in a given year if the fish is not aged
 Clipsrel = Link_rel%>%
-  dplyr::group_by(WBID, sample_year, species_code)%>%
+  dplyr::group_by(WBID, sample_year, Sample_event, species_code)%>%
   dplyr::summarise(Nclips = sum(!is.na(mark_code)&is.na(age)))%>%
   dplyr::filter(Nclips>0)
 
@@ -75,7 +75,7 @@ vwIndividualFish = vwIndividualFish%>%
 #########################
 
 #Join potential stocking events to vwIndividualFish to check for natural recruits in stocked species
-join_cols = c("region_code","WBID","locale_name","year"="sample_year","species_code","age", "mark_code")
+join_cols = c("region_code","WBID","locale_name","year"="sample_year","Sample_event","species_code","age", "mark_code")
 info_cols = c("sby_rel","AF","Sterile")
 #This joins by age, so ageing errors can lead to false possible Natural Recruit
 NR = dplyr::left_join(vwIndividualFish,
@@ -137,9 +137,9 @@ info_cols = c(
 )
 
 #Perform 'Stocked_age' test to see if the entered age is within possible released ages.
-Link_rel_noage = Link_rel%>%dplyr::filter(is.na(age))%>%dplyr::select(all_of(c("Lk_yr",info_cols)))
+Link_rel_noage = Link_rel%>%dplyr::filter(is.na(age))%>%dplyr::select(all_of(c("Sample_event",info_cols)))
 Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
-                                by = c("Lk_yr","species_code","mark_code"))%>%
+                                by = c("Sample_event","species_code","mark_code"))%>%
   dplyr::rowwise()%>%
   dplyr::mutate(Stocked_age = age%in%as.integer(strsplit(Poss_Age, ",")[[1]]))%>%
   dplyr::ungroup()
@@ -150,8 +150,8 @@ Bioambig = Biopossible[!Biopossible$Stocked_age,]
 
 #If yes, then re-link releases to biological using age or brood year as a linking variable.
 Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-c(sby_rel:Poss_Age))
-Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),]%>%dplyr::select(all_of(c("Lk_yr","age",info_cols))),
-                            by = c("species_code","Lk_yr","mark_code","age"))
+Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),]%>%dplyr::select(all_of(c("Sample_event","age",info_cols))),
+                            by = c("species_code","Sample_event","mark_code","age"))
 
 #Bring back together and remove temporary files.
 Biological = rbind(Bioambig,Bioaged)

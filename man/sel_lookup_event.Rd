@@ -7,21 +7,19 @@
 \format{
 A tibble with the following columns:
 \describe{
-  \item{Sample_event}{Character. Event identifier constructed as
-    \code{method_WBID_Season}.}
+  \item{Sample_event}{Character. Event identifier (e.g., \code{"GN_00001LNIC_2015_SON"}).}
+  \item{locale_name}{Character. Local lake name (from \code{lake_names}).}
+  \item{year}{Numeric/integer. Calendar year of the sampling event.}
+  \item{Season}{Character. Season code for the sampling event.}
   \item{species_code}{Character. Species code.}
-  \item{curve}{List-column of numeric vectors. Relative selectivity
-    values aligned to \code{sel_classes}.}
-  \item{effort_total}{Numeric. Total effort weight used to compute the
-    aggregated curve (area × time).}
-  \item{n_designs}{Integer. Number of unique sample design codes
-    contributing to the event-level curve.}
-    \item{event_designs}{List column of character vectors. ALl gillnet designs used within a sample_event.}
+  \item{curve}{List-column of numeric vectors. Relative selectivity values aligned to \code{sel_classes}.}
+  \item{effort_total}{Numeric. Total effort weight used to compute the aggregated curve (area × time).}
+  \item{n_designs}{Integer. Number of unique sample design codes contributing to the event-level curve.}
+  \item{event_designs}{List-column of character vectors. All gillnet designs used within a Sample_event.}
 }
 }
 \source{
-DataPond database (vwFishCollection, vwIndividualFish,
-SampleDesign_MeshSizeCode)
+DataPond database (vwFishCollection, vwIndividualFish, SampleDesign_MeshSizeCode)
 }
 \usage{
 sel_lookup_event

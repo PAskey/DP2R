@@ -74,58 +74,80 @@ link_releases <- function(){
 
 
   #Step 2. Find the list of sampled lake-years in the vwIndividualFish table that could be linked to releases.
+  # Step 2 (revised): sampled events (not just lake-years)
+  # event_start_dt = first sampling date in that Sample_event
+  Sampled_events <- vwIndividualFish %>%
+    dplyr::semi_join(Releases, by = c("WBID", "species_code")) %>%
+    dplyr::group_by(WBID, species_code, year, Sample_event) %>%
+    dplyr::summarise(
+      event_start_dt = min(as.Date(date_assessed), na.rm = TRUE),
+      max_age_obs = suppressWarnings(max(age[age < 50], na.rm = TRUE)),
+      .groups = "drop"
+    )
+
+
 
 
   endage = 6# Set the max age you expect to retrieve stocked fish in a lake. This value is overwritten if fish were aged at an older age from a given lake at any point in time. So this is more like an average maximum age sampled.
 
   #The Sampled_only variable filters lakes and releases to cases where a lake has been assessed (data exists in the vwIndividualFish Table). However, some cases in the vwIndividualFish table are not true in-lake sampling events.We will remove these from here and all further analyses. If they are wanted use SLD2R() only.
 
-
-  maxxages = vwIndividualFish%>%
-    #dplyr::filter(age<100)%>%#there is one erroneous fish with an age of 2019
-    dplyr::semi_join(Releases, by = c("WBID", "species_code"))%>%
-    dplyr::group_by(WBID, year, species_code) %>%
-    dplyr::summarise(max = max(endage,max(age[age<50], na.rm = T), na.rm = T), .groups = "drop")%>%
-    dplyr::group_by(WBID,species_code) %>%
-    dplyr::mutate(max = max(max, na.rm = T))%>%
-    suppressWarnings()
+  maxxages <- Sampled_events %>%
+    dplyr::mutate(max = pmax(endage, max_age_obs, na.rm = TRUE)) %>%
+    dplyr::group_by(WBID, species_code) %>%
+    dplyr::mutate(max = max(max, na.rm = TRUE)) %>%   # lake-species max across events
+    dplyr::ungroup()
 
 
   #Step 3. From those sampled lake years find the sequence of previous stocking years to that lake that could have fish in the lake at the time of sampling. Search back to oldest age observed or the endage.
 
-  Sampled = maxxages%>%
-    dplyr::filter(!is.na(year))%>%
-    dplyr::group_by(WBID, year, species_code) %>%
-    dplyr::mutate(YearSeq = purrr::map(year, ~seq((. - max), .))) %>%
+  Sampled <- maxxages %>%
+    dplyr::filter(!is.na(year)) %>%
+    dplyr::group_by(WBID, species_code, year, Sample_event, event_start_dt, max) %>%
+    dplyr::mutate(YearSeq = purrr::map(year, ~ seq((. - max), .))) %>%
     tidyr::unnest(YearSeq) %>%
     dplyr::ungroup() %>%
-    dplyr::select(WBID, species_code, sample_year = year, release_year = YearSeq)
+    dplyr::transmute(
+      WBID, species_code,
+      sample_year = year,
+      Sample_event,
+      event_start_dt,
+      release_year = YearSeq
+    )
 
   #Step 4. Go back to releases and filter down to the matching lake-year combinations
 
 
   #This is a much faster way to filter than using interaction()
   ##THIS TABLE IS ADDED TO ENVIRO_______________________________________________
-  Rel_sampled = Releases %>%
-    dplyr::inner_join(Sampled, by = c("WBID", "species_code","release_year"), relationship = "many-to-many")%>%
-    dplyr::mutate(Rel_Age = age, age = (sample_year-release_year)+Rel_Age)
-
-  #Insert Stable years as a variable to releases
-  #Rel_sampled = dplyr::left_join(Rel_sampled, Stable, by = c('WBID','sample_year'='year'))
+  Rel_sampled <- Releases %>%
+    dplyr::inner_join(
+      Sampled,
+      by = c("WBID", "species_code", "release_year"),
+      relationship = "many-to-many"
+    ) %>%
+    dplyr::filter(
+      release_year < sample_year |
+        (release_year == sample_year & rel_Date <= event_start_dt)
+    ) %>%
+    dplyr::mutate(Rel_Age = age, age = (sample_year - release_year) + Rel_Age)
 
 
   #Step 5. Link individual fish back to their stocking records. If they are aged, the we can narrow down to release event(s) in one year to one lake.
 
 
   aged_in_lake <- Rel_sampled %>%
-    dplyr::group_by(!!!rlang::syms(c("sample_year",
-                                     setdiff(group_cols,
-                  c("release_year","brood_year","lifestage_code","Season","strain","ploidy", "trans_method_code"))))) %>%
+    dplyr::group_by(!!!rlang::syms(c(
+      "Sample_event",
+      "sample_year",
+      setdiff(group_cols,
+              c("release_year","brood_year","lifestage_code","Season","strain","ploidy", "trans_method_code"))
+    ))) %>%
     dplyr::summarise(
-      sby_rel    = dplyr::na_if(stringr::str_c(unique(na.omit(brood_year)),             collapse=","), ""),
-      Strain_rel = dplyr::na_if(stringr::str_c(unique(na.omit(strain)),               collapse=","), ""),
-      Geno_rel   = dplyr::na_if(stringr::str_c(unique(na.omit(ploidy)),               collapse=","), ""),
-      LS_rel     = dplyr::na_if(stringr::str_c(unique(na.omit(lifestage_code)),  collapse=","), ""),
+      sby_rel    = dplyr::na_if(stringr::str_c(unique(na.omit(brood_year)), collapse=","), ""),
+      Strain_rel = dplyr::na_if(stringr::str_c(unique(na.omit(strain)),     collapse=","), ""),
+      Geno_rel   = dplyr::na_if(stringr::str_c(unique(na.omit(ploidy)),     collapse=","), ""),
+      LS_rel     = dplyr::na_if(stringr::str_c(unique(na.omit(lifestage_code)), collapse=","), ""),
       AF = all(grepl("F", ploidy)),
       Sterile = all(grepl("3", ploidy)),
       wt_rel = round(sum(.data$size_g*.data$Quantity)/sum(.data$Quantity), 1),
@@ -148,9 +170,12 @@ link_releases <- function(){
   }
 
   unaged_in_lake <- aged_in_lake %>%
-    dplyr::group_by(!!!rlang::syms(c("sample_year",
-                                     setdiff(group_cols,
-                                  c("release_year","brood_year","age","lifestage_code","Season","strain","ploidy", "trans_method_code"))))) %>%
+    dplyr::group_by(!!!rlang::syms(c(
+      "Sample_event",
+      "sample_year",
+      setdiff(group_cols,
+              c("release_year","brood_year","age","lifestage_code","Season","strain","ploidy", "trans_method_code"))
+    ))) %>%
     dplyr::summarise(
       sby_rel    = split_collapse(sby_rel),
       Strain_rel = split_collapse(Strain_rel),
@@ -161,15 +186,10 @@ link_releases <- function(){
       wt_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(wt_rel)/mean(wt_rel)) < 0.5,  mean(wt_rel), NA_real_), 1),
       N_ha_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(N_ha_rel)/mean(N_ha_rel)) < 0.15, mean(N_ha_rel), NA_real_), 0),
       avg_rel_date = as.Date(mean(avg_rel_date)),
-      Poss_Age = {
-        v <- sort(unique(age)); v <- v[!is.na(v)]
-        dplyr::na_if(stringr::str_c(v, collapse=","), "")
-      },
+      Poss_Age = { v <- sort(unique(age)); v <- v[!is.na(v)]; dplyr::na_if(stringr::str_c(v, collapse=","), "") },
       .groups = "drop"
     ) %>%
     dplyr::mutate(age = NA_integer_)
-
-
 
   ##Add in a variable to document how many years the current stocking prescription has been stable (same as previous years)
   #Group based on a per lake-year stocking prescription across, species, strains, life-stages. Strain is an unknown impact and variable for species other than RB, so disregard for other species
@@ -225,11 +245,9 @@ link_releases <- function(){
     dplyr::select(WBID, sample_year, Stable_yrs)
 
   ##THIS TABLE IS ADDED TO ENVIRO_______________________________________________
-  Link_rel = rbind(aged_in_lake, unaged_in_lake)%>%
-    #dplyr::rename(year = sample_year)%>%
-    dplyr::left_join(.,Stable, by = c('WBID','sample_year'))%>%
-    dplyr::mutate(Lk_yr = paste0(WBID,"_",sample_year))%>%
-    tidyr::replace_na(.,list(Stable_yrs = 0))
+  Link_rel <- rbind(aged_in_lake, unaged_in_lake) %>%
+    dplyr::left_join(Stable, by = c("WBID","sample_year")) %>%
+    tidyr::replace_na(list(Stable_yrs = 0))
 
 
 

@@ -209,32 +209,25 @@ NULL
 # ----------------------------------------------------------------------
 #' Mgt_Region_Unit Dataset
 #'
-#' A data frame regions and wildlife management units associated with lakes.
+#' A data frame of regions and wildlife management units associated with lakes.
 #' Data obtained from bcdata R package and code in raw-data folder.
-#' Initial function of this data was to be able to match unique lakes by name and wmu to DFO survey data.
 #'
 #' @format A data frame with 10 columns:
 #' \describe{
-#'   \item{WATERBODY_POLY_ID}{unique identifier for the polygon describiing the lake, integer}
-#'   \item{GNIS_NAME_1}{Gazetted waterbody name, character}
-#'   \item{GNIS_NAME_2}{Alias, character}
-#'   \item{GNIS_NAME_3}{Alias, character}
-#'   \item{WBID}{Waterbody Identifie, character}
-#'   \item{Management_Unit}{wildlife management unit, character}
-#'   \item{region_code}{managment region_code code, character}
-#'   \item{RegionName}{managment region_code full name, character}
-#'   \item{OBJECTID}{unique identifier provinical database, integer}
-#'   \item{neighbour_mus}{comma separated list of wildlife managment units that are adjacent to wmu in column 5, character}
+#'   \item{WATERBODY_POLY_ID}{Integer. Unique identifier for the polygon describing the lake.}
+#'   \item{gazetted_name}{Character. Official gazetted waterbody name, if available.}
+#'   \item{alias}{Character. Alternative or informal lake name, if available.}
+#'   \item{WBID}{Character. Waterbody identifier.}
+#'   \item{Management_Unit}{Character. Wildlife management unit.}
+#'   \item{region_code}{Character. Management region code.}
+#'   \item{RegionName}{Character. Management region full name.}
+#'   \item{OBJECTID}{Integer. Unique identifier in provincial database.}
+#'   \item{locale_name}{Character. Local or commonly used lake name, if available.}
+#'   \item{neighbour_mus}{Character. Comma-separated list of adjacent WMUs.}
 #' }
 #' @usage data(Mgt_Region_Unit)
 #' @source Generated from bcdata R package for the DP2R package and code in data-raw folder.
-#'
-#' @examples
-#' data(Mgt_Region_Unit)
-#' head(Mgt_Region_Unit)
-#'
-#' @docType data
-#' @name Mgt_Region_Unit
+"Mgt_Region_Unit"
 NULL
 
 # ----------------------------------------------------------------------
@@ -385,16 +378,15 @@ NULL
 #'
 #' @format A tibble with the following columns:
 #' \describe{
-#'   \item{Sample_event}{Character. Event identifier constructed as
-#'     \code{method_WBID_Season}.}
+#'   \item{Sample_event}{Character. Event identifier (e.g., \code{"GN_00001LNIC_2015_SON"}).}
+#'   \item{locale_name}{Character. Local lake name (from \code{lake_names}).}
+#'   \item{year}{Numeric/integer. Calendar year of the sampling event.}
+#'   \item{Season}{Character. Season code for the sampling event.}
 #'   \item{species_code}{Character. Species code.}
-#'   \item{curve}{List-column of numeric vectors. Relative selectivity
-#'     values aligned to \code{sel_classes}.}
-#'   \item{effort_total}{Numeric. Total effort weight used to compute the
-#'     aggregated curve (area × time).}
-#'   \item{n_designs}{Integer. Number of unique sample design codes
-#'     contributing to the event-level curve.}
-#'     \item{event_designs}{List column of character vectors. ALl gillnet designs used within a sample_event.}
+#'   \item{curve}{List-column of numeric vectors. Relative selectivity values aligned to \code{sel_classes}.}
+#'   \item{effort_total}{Numeric. Total effort weight used to compute the aggregated curve (area × time).}
+#'   \item{n_designs}{Integer. Number of unique sample design codes contributing to the event-level curve.}
+#'   \item{event_designs}{List-column of character vectors. All gillnet designs used within a Sample_event.}
 #' }
 #'
 #' @details
@@ -402,6 +394,6 @@ NULL
 #' \code{build_sel_lookup_event_observed()} and is intended for use with
 #' \code{GN_select()} when the \code{Sample_event} argument is supplied.
 #'
-#' @source DataPond database (vwFishCollection, vwIndividualFish,
-#' SampleDesign_MeshSizeCode)
+#' @source DataPond database (vwFishCollection, vwIndividualFish, SampleDesign_MeshSizeCode)
 "sel_lookup_event"
+NULL

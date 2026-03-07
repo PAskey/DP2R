@@ -31,7 +31,7 @@ link_releases <- function(){
   #Step 1. Clean and standardize release data
 
   Releases = vwLegacyRelease%>%
-    mutate(age = sby2age(species_code, brood_year, release_year))
+    dplyr::mutate(age = sby2age(species_code, brood_year, release_year))
 
   #Clean up not needed if james gets this done.
  # Releases <- Releases%>%dplyr::mutate(

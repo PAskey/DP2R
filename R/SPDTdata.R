@@ -149,7 +149,7 @@ uni_events = idf%>%
 
 #Gives same result with left or right join
 #Join this with clipsdf, so all releases that should appear in a sampling event are tracked.
-clipsdf = dplyr::left_join(uni_events[,c(1:4)], clipsdf, by = 'Lk_yr')%>%#Add sample date in below
+clipsdf = dplyr::left_join(uni_events[,c(1:4)], clipsdf, by = 'Sample_event')%>%#Add sample date in below
           dplyr::filter(!is.na(species_code))#Remove cases that did not match a stocking event.
 ###################################################################################################################
 gdf = dplyr::full_join(gdf, clipsdf[,c("locale_name","WBID", "Lk_yr", "Sample_event","sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
@@ -183,9 +183,11 @@ gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Sample_event","Season",
 
 
 exps <- gdf%>%
-  dplyr::filter(!grepl(",",get(Contrast)))%>%#discount groups that included multiple levels within contrast (they are always separated by commas)
+  dplyr::filter(!grepl(",", .data[[Contrast]])) %>%#discount groups that included multiple levels within contrast (they are always separated by commas)
   dplyr::group_by(Lk_yr, age, !!!rlang::syms(controls))%>%
-  dplyr::summarize(Ncontrasts = length(unique(na.omit(get(Contrast)))), Nclips = length(unique(na.omit(mark_code))))%>%
+  dplyr::summarize(Ncontrasts = length(unique(na.omit(get(Contrast)))),
+                   Nclips = length(unique(na.omit(mark_code))),
+                   .groups = "drop")%>%
   dplyr::filter((Nclips>=Ncontrasts&Ncontrasts>1)|(Contrast == "species_code"&Ncontrasts>1))%>%
   droplevels()
 

@@ -10,9 +10,8 @@ plot_selectivity(
   Sample_event = NULL,
   plot_sub_designs = TRUE,
   classes = 75:900,
-  facet = c("none", "species", "design", "event"),
-  colour_by = c("auto", "species", "design", "interaction"),
-  approx_select_spp = NULL
+  facet = c("none", "species", "design", "event", "locale_year"),
+  colour_by = c("auto", "species", "design", "interaction")
 )
 }
 \arguments{
@@ -29,13 +28,13 @@ also plot the sub-design curves listed in \code{sel_lookup_event$event_designs}.
 
 \item{classes}{Numeric vector of fork-length classes (mm). Must align with curve length.}
 
-\item{facet}{Faceting mode: \code{"none"}, \code{"species"}, \code{"design"}, or \code{"event"}.
-\code{"event"} facets by \code{Sample_event} (only meaningful when \code{Sample_event} is supplied).}
+\item{facet}{Faceting mode: \code{"none"}, \code{"species"}, \code{"design"},
+\code{"event"}, or \code{"locale_year"}.
+\code{"event"} facets by \code{Sample_event}; \code{"locale_year"} facets by
+\code{locale_name + year}. Event-based facets are only meaningful when
+\code{Sample_event} is supplied.}
 
 \item{colour_by}{Colour grouping: \code{"auto"}, \code{"species"}, \code{"design"}, or \code{"interaction"}.}
-
-\item{approx_select_spp}{Optional table used to approximate requested species when not
-present in \code{sel_lookup}. If \code{NULL}, loaded from \code{DP2R::approx_select_spp}.}
 }
 \value{
 A \code{ggplot} object.
@@ -49,7 +48,9 @@ Creates selectivity curves from the \code{DP2R} package lookup tables
 This version adds:
 \itemize{
   \item Faceting by \code{Sample_event} via \code{facet = "event"} (when \code{Sample_event} is supplied)
+  \item Faceting by \code{locale_name + year} via \code{facet = "locale_year"} (when those columns exist in \code{sel_lookup_event})
   \item Correct replication of design-level curves to each \code{Sample_event} so faceting works
   \item Event-level \dQuote{Overall (event)} curve is always drawn first in ordering and drawn thicker in black
+  \item Automatic use of \code{DP2R::approx_select_spp} when requested species are not present in \code{sel_lookup}
 }
 }

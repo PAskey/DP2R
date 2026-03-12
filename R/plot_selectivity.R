@@ -9,8 +9,10 @@
 #' This version adds:
 #' \itemize{
 #'   \item Faceting by \code{Sample_event} via \code{facet = "event"} (when \code{Sample_event} is supplied)
+#'   \item Faceting by \code{locale_name + year} via \code{facet = "locale_year"} (when those columns exist in \code{sel_lookup_event})
 #'   \item Correct replication of design-level curves to each \code{Sample_event} so faceting works
 #'   \item Event-level \dQuote{Overall (event)} curve is always drawn first in ordering and drawn thicker in black
+#'   \item Automatic use of \code{DP2R::approx_select_spp} when requested species are not present in \code{sel_lookup}
 #' }
 #'
 #' @param species Character vector of requested species codes (e.g., \code{"KO"}).
@@ -21,11 +23,12 @@
 #' @param plot_sub_designs Logical; when \code{TRUE} and \code{Sample_event} is supplied,
 #'   also plot the sub-design curves listed in \code{sel_lookup_event$event_designs}.
 #' @param classes Numeric vector of fork-length classes (mm). Must align with curve length.
-#' @param facet Faceting mode: \code{"none"}, \code{"species"}, \code{"design"}, or \code{"event"}.
-#'   \code{"event"} facets by \code{Sample_event} (only meaningful when \code{Sample_event} is supplied).
+#' @param facet Faceting mode: \code{"none"}, \code{"species"}, \code{"design"},
+#'   \code{"event"}, or \code{"locale_year"}.
+#'   \code{"event"} facets by \code{Sample_event}; \code{"locale_year"} facets by
+#'   \code{locale_name + year}. Event-based facets are only meaningful when
+#'   \code{Sample_event} is supplied.
 #' @param colour_by Colour grouping: \code{"auto"}, \code{"species"}, \code{"design"}, or \code{"interaction"}.
-#' @param approx_select_spp Optional table used to approximate requested species when not
-#'   present in \code{sel_lookup}. If \code{NULL}, loaded from \code{DP2R::approx_select_spp}.
 #'
 #' @return A \code{ggplot} object.
 #'
@@ -35,9 +38,8 @@ plot_selectivity <- function(species,
                              Sample_event = NULL,
                              plot_sub_designs = TRUE,
                              classes = 75:900,
-                             facet = c("none", "species", "design", "event"),
-                             colour_by = c("auto", "species", "design", "interaction"),
-                             approx_select_spp = NULL) {
+                             facet = c("none", "species", "design", "event", "locale_year"),
+                             colour_by = c("auto", "species", "design", "interaction")) {
 
   colour_by_user <- !missing(colour_by)
   facet <- match.arg(facet)
@@ -70,6 +72,16 @@ plot_selectivity <- function(species,
       stop("plot_selectivity(): sel_lookup_event is missing: ", paste(miss, collapse = ", "),
            call. = FALSE)
     }
+
+    if (facet == "locale_year") {
+      req_facet_cols <- c("locale_name", "year")
+      miss_facet <- setdiff(req_facet_cols, names(sel_lookup_event))
+      if (length(miss_facet) > 0) {
+        stop("plot_selectivity(): facet='locale_year' requires sel_lookup_event columns: ",
+             paste(miss_facet, collapse = ", "), call. = FALSE)
+      }
+    }
+
     if (isTRUE(plot_sub_designs) && !("event_designs" %in% names(sel_lookup_event))) {
       stop("plot_selectivity(): plot_sub_designs=TRUE requires sel_lookup_event to have an 'event_designs' list-column.",
            call. = FALSE)
@@ -83,12 +95,11 @@ plot_selectivity <- function(species,
     }
   }
 
-  if (is.null(approx_select_spp)) {
-    utils::data("approx_select_spp", package = "DP2R", envir = environment())
-    approx_select_spp <- get("approx_select_spp", envir = environment(), inherits = FALSE)
-  }
+  # Always load approximation table internally
+  utils::data("approx_select_spp", package = "DP2R", envir = environment())
+  approx_select_spp <- get("approx_select_spp", envir = environment(), inherits = FALSE)
 
-  # --- species mapping / approximation logic (same as your original) ---
+  # Species mapping / approximation logic
   sel_species <- unique(as.character(sel_lookup$species_code))
   species_req <- unique(as.character(species))
 
@@ -136,20 +147,23 @@ plot_selectivity <- function(species,
     pieces[["event"]] <- df_event
 
     if (isTRUE(plot_sub_designs)) {
-      # Key of (Sample_event, species_code, design) from event_designs
+      # Preserve facetting columns so replicated design rows can facet correctly
+      keep_cols <- c("Sample_event", "species_code", "event_designs")
+      extra_cols <- intersect(c("locale_name", "year"), names(sel_lookup_event))
+
       event_design_key <- sel_lookup_event |>
         dplyr::mutate(
           Sample_event = as.character(Sample_event),
           species_code = as.character(species_code)
         ) |>
         dplyr::filter(Sample_event %in% ev) |>
-        dplyr::select(Sample_event, species_code, event_designs) |>
+        dplyr::select(dplyr::all_of(c(keep_cols, extra_cols))) |>
         tidyr::unnest_longer(event_designs, values_to = "sample_design_code") |>
         dplyr::mutate(
           sample_design_code = stringr::str_trim(as.character(sample_design_code))
         ) |>
         dplyr::filter(!is.na(sample_design_code), sample_design_code != "") |>
-        dplyr::distinct(Sample_event, species_code, sample_design_code)
+        dplyr::distinct()
 
       dsgns <- unique(event_design_key$sample_design_code)
 
@@ -157,7 +171,7 @@ plot_selectivity <- function(species,
         warning("plot_selectivity(): plot_sub_designs=TRUE but no designs found in sel_lookup_event$event_designs for the requested Sample_event(s).",
                 call. = FALSE)
       } else {
-        # Design curves from sel_lookup (no Sample_event)...
+        # Design curves from sel_lookup, replicated per Sample_event
         df_design <- sel_lookup |>
           dplyr::mutate(
             species_code = as.character(species_code),
@@ -168,10 +182,12 @@ plot_selectivity <- function(species,
             sample_design_code %in% dsgns
           )
 
-        # ...replicated per Sample_event by joining to the key
         df_design_ev <- event_design_key |>
-          dplyr::inner_join(df_design, by = c("species_code" = "species_code",
-                                              "sample_design_code" = "sample_design_code"))
+          dplyr::inner_join(
+            df_design,
+            by = c("species_code" = "species_code",
+                   "sample_design_code" = "sample_design_code")
+          )
 
         pieces[["design"]] <- df_design_ev
       }
@@ -205,11 +221,12 @@ plot_selectivity <- function(species,
       )
     )
 
-  # Auto colour choice (mirrors original behavior + event)
+  # Auto colour choice
   if (!colour_by_user && colour_by == "auto") {
     if (facet == "design") colour_by <- "species"
     if (facet == "species") colour_by <- "design"
     if (facet == "event")   colour_by <- "design"
+    if (facet == "locale_year") colour_by <- "design"
   }
 
   if (facet == "none" && colour_by == "auto") {
@@ -224,8 +241,10 @@ plot_selectivity <- function(species,
 
   # Force "Overall (event)" to be the first level
   other_levels <- sort(unique(as.character(df$sample_design_code[df$sample_design_code != "Overall (event)"])))
-  df$sample_design_code <- factor(as.character(df$sample_design_code),
-                                  levels = c("Overall (event)", other_levels))
+  df$sample_design_code <- factor(
+    as.character(df$sample_design_code),
+    levels = c("Overall (event)", other_levels)
+  )
 
   # Long format
   df_long <- df |>
@@ -249,7 +268,7 @@ plot_selectivity <- function(species,
          call. = FALSE)
   }
 
-  # Colour grouping without scalar-case_when (avoids dplyr warning)
+  # Colour grouping
   if (colour_by == "species") {
     df_long$colour_id <- df_long$species_display
     legend_title <- "Species"
@@ -261,7 +280,7 @@ plot_selectivity <- function(species,
     legend_title <- "Species | Net"
   }
 
-  # Range highlighting (same logic as original)
+  # Range highlighting
   df_long <- df_long |>
     dplyr::mutate(
       in_range = dplyr::if_else(
@@ -271,23 +290,25 @@ plot_selectivity <- function(species,
       )
     )
 
-  # Use base::interaction() (NOT dplyr::interaction)
-  group_id <- interaction(
+  # Use base::interaction() to keep event-specific lines distinct
+  df_long$group_id <- interaction(
     dplyr::coalesce(df_long$Sample_event, ""),
     df_long$line_id,
     drop = TRUE
   )
-  df_long$group_id <- group_id
 
   # Plot
   p <- ggplot2::ggplot(df_long, ggplot2::aes(length_mm, curve)) +
-    ggplot2::geom_line(aes(group = group_id), colour = "grey75", linewidth = 0.8) +
+    ggplot2::geom_line(
+      ggplot2::aes(group = group_id),
+      colour = "grey75",
+      linewidth = 0.8
+    ) +
     ggplot2::geom_line(
       data = dplyr::filter(df_long, in_range, !is_overall),
       ggplot2::aes(group = group_id, colour = colour_id),
       linewidth = 1.3
     ) +
-    # Overall curve: black + thicker, drawn last so it sits on top
     ggplot2::geom_line(
       data = dplyr::filter(df_long, is_overall),
       ggplot2::aes(group = group_id),
@@ -312,6 +333,13 @@ plot_selectivity <- function(species,
               call. = FALSE)
     } else {
       p <- p + ggplot2::facet_wrap(~Sample_event)
+    }
+  } else if (facet == "locale_year") {
+    if (!use_event) {
+      warning("plot_selectivity(): facet='locale_year' requested but no Sample_event supplied; using facet='none'.",
+              call. = FALSE)
+    } else {
+      p <- p + ggplot2::facet_wrap(~locale_name + year)
     }
   }
 

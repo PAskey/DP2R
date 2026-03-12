@@ -228,21 +228,66 @@ pi = ggplot2::ggplot(data = plot_idf, ggplot2::aes(colour = get(Contrast), fill 
 
 
 if(Metric == "condition"){
-  #plot_idf = plot_idf[0<plot_idf$weight_g,]
+#fit a length-weight regression
+  lw_params <- plot_idf |>
+    dplyr::filter(length_mm > 0, weight_g > 0) |>
+    dplyr::group_by(locale_name, Year_Season, !!rlang::sym(Contrast)) |>
+    dplyr::group_modify(~{
+      fit <- stats::lm(log(weight_g) ~ log(length_mm), data = .x)
+      tibble::tibble(
+        a = exp(stats::coef(fit)[1]),
+        b = stats::coef(fit)[2],
+        label = paste0(
+          "W = ",
+          signif(exp(stats::coef(fit)[1]), 3),
+          " L^",
+          round(stats::coef(fit)[2], 2)
+        )
+      )
+    }) |>
+    dplyr::ungroup()
 
-  #plot_idf$logW = log(plot_idf$weight_g)
-  #plot_idf$logL = log(plot_idf$length_mm)
-  #lm <- lm(data=plot_idf,logW ~ logL + as.factor(Lk_yr) + Strain)
-  #ggiraphExtra::ggPredict(lm,se=TRUE,interactive=TRUE)
-  #preds = ggeffects::ggpredict(lm, terms = c("Lk_yr", "logL"))
-  #ggeffects::plot(preds)
-  #plot(preds, add.data = TRUE, facet = TRUE)
+  x_lab <- max(plot_idf$length_mm, na.rm = TRUE)
+  y_min <- min(plot_idf$weight_g[plot_idf$weight_g > 0], na.rm = TRUE)
+  y_max <- max(plot_idf$weight_g, na.rm = TRUE)
 
-p = pi +
-  ggplot2::geom_point(ggplot2::aes(x = .data$length_mm, y = .data$weight_g), size = 3, alpha = 0.5)+
-  ggplot2::scale_x_log10()+
-  ggplot2::scale_y_log10()#+
-  #ggplot2::facet_wrap(.data$locale_name~.data$Year_Season)#Don't want scales free so repeated facet_wrap line
+  lw_params <- lw_params |>
+    dplyr::group_by(locale_name, Year_Season) |>
+    dplyr::mutate(
+      row = dplyr::row_number(),
+      x = x_lab,
+      y = ifelse(row == 1, y_max, y_min),
+      vjust = ifelse(row == 1, 1, 0)
+    ) |>
+    dplyr::ungroup()
+
+  p <- pi +
+    ggplot2::geom_point(
+      ggplot2::aes(x = length_mm, y = weight_g),
+      size = 3,
+      alpha = 0.5
+    ) +
+    ggplot2::geom_smooth(
+      ggplot2::aes(x = length_mm, y = weight_g),
+      method = "lm",
+      formula = y ~ x,
+      se = FALSE
+    ) +
+    ggplot2::geom_text(
+      data = lw_params,
+      ggplot2::aes(
+        x = x,
+        y = y,
+        label = label,
+        colour = .data[[Contrast]],
+        vjust = vjust
+      ),
+      inherit.aes = FALSE,
+      hjust = 1,
+      size = 3
+    ) +
+    ggplot2::scale_x_log10() +
+    ggplot2::scale_y_log10()
 }
 
 

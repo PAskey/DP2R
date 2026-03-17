@@ -45,7 +45,10 @@ A series of plots looking at the overall size distribution of the entire populat
 
 "FL_density"(fork-length frequencies per lake-sample session as smoothed densities),
 
-"FL_hist"(fork-length frequencies per lake-sample session as histograms),
+"FL_hist or wt_hist"(fork-length frequencies per lake-sample session as histograms),
+
+"condition or condition_density"
+It is possible to add ggplot layers after the SPDTplot call for details on things like faceting or scales.
 
 In all cases the data will be grouped by the "Contrast" stated during the SPDT data call.}
 

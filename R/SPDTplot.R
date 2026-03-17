@@ -40,7 +40,10 @@
 #'
 #' "FL_density"(fork-length frequencies per lake-sample session as smoothed densities),
 #'
-#' "FL_hist"(fork-length frequencies per lake-sample session as histograms),
+#' "FL_hist or wt_hist"(fork-length frequencies per lake-sample session as histograms),
+#'
+#' "condition or condition_density"
+#' It is possible to add ggplot layers after the SPDTplot call for details on things like faceting or scales.
 #'
 #' In all cases the data will be grouped by the "Contrast" stated during the SPDT data call.
 #' @param Method a character string describing the capture method. Defaults to "GN" (gillnet), but any other capture method code fo rmthe database is acceptable.
@@ -348,7 +351,7 @@ if (Metric == "FL_density"){
 
 p = pi+
     ggplot2::geom_density(ggplot2::aes(x = .data$length_mm), alpha = 0.4, lwd = 1, adjust = 1/2)+
-    ggplot2::xlim(c(100,NA))+
+    #ggplot2::xlim(c(100,NA))+
     ggplot2::theme_bw()+
     ggplot2::theme(axis.text.y=ggplot2::element_blank(), axis.ticks.y=ggplot2::element_blank())+
     ggplot2::labs( fill = Contrast, colour = Contrast)
@@ -361,7 +364,7 @@ if (Metric == "FL_freq"){
 
   p = pi+
     ggplot2::geom_freqpoly(ggplot2::aes(x = .data$length_mm), alpha = 0.9, lwd = 1, binwidth = 20)+
-    ggplot2::xlim(c(100,NA))+
+    #ggplot2::xlim(c(100,NA))+
     ggplot2::theme_bw()+
     ggplot2::labs(colour = Contrast)+
     ggplot2::guides(colour=ggplot2::guide_legend(override.aes = list(line = 2)),fill="none")
@@ -373,7 +376,7 @@ if (Metric == "FL_hist"){
 
   p = pi+
     ggplot2::geom_histogram(ggplot2::aes(x = .data$length_mm), alpha = 0.2, lwd = 1, position = "identity", binwidth = 20)+
-    ggplot2::xlim(c(100,450))+
+    #ggplot2::xlim(c(100,450))+
     ggplot2::theme_bw()+
     ggplot2::labs( fill = Contrast, colour = Contrast)
 
@@ -384,11 +387,26 @@ if (Metric == "wt_hist"){
 
   p = pi+
     ggplot2::geom_histogram(ggplot2::aes(x = .data$weight_g), alpha = 0.2, lwd = 1, position = "identity", binwidth = 20)+
-    ggplot2::xlim(c(100,450))+
+    #ggplot2::xlim(c(100,450))+
     ggplot2::theme_bw()+
     ggplot2::labs( fill = Contrast, colour = Contrast)
 
 }
+
+
+if (Metric == "condition_density"){
+  if(min_N<20){warning("Min_N should be set >=20 for pop length frequency plots")}
+
+  p = pi+
+    ggplot2::geom_density(ggplot2::aes(x = .data$condition_factor), alpha = 0.4, lwd = 1, adjust = 0.8)+
+    ggplot2::theme_bw()+
+    ggplot2::theme(axis.text.y=ggplot2::element_blank(), axis.ticks.y=ggplot2::element_blank())+
+    ggplot2::labs( fill = Contrast, colour = Contrast)
+
+}
+
+
+
 
 if (Metric == "maturation_by_sex"){
     if(min_N<5){warning("Min_N should be set >=5 for maturation plots")}

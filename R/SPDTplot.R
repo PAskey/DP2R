@@ -79,12 +79,46 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
   #Some name simplification for plotting.
   plot_wide = plot_wide%>%
     dplyr::rowwise()%>%
-    dplyr::mutate(short_name = substr(locale_name, 1, 4))#,
-          # Other_spp = dplyr::if_else(grepl("NS",Spp_caught),"Pikeminnow",Spp_class))
+    dplyr::mutate(short_name = substr(locale_name, 1, 4))
 
+  #Helper function to ensure sample size requirements (min_N) apply to metric of interest
+  metric_valid_filter <- function(df, Metric) {
+    dplyr::case_when(
+      Metric %in% c("mu_growth_FL", "growth_FL", "FL_density", "FL_freq", "FL_hist", "FL_age_facets") ~
+        !is.na(df$length_mm),
 
-  plot_idf = idf%>%dplyr::filter(method %in% Method,!is.na(N_ha_rel), age %in% Ages)#min_N is filtered by lake_yr later.
-  plot_gdf = gdf%>%dplyr::filter(method %in% Method,!is.na(N_ha_rel), age %in% Ages, N >=min_N)
+      Metric %in% c("mu_growth_wt", "growth_wt", "wt_hist") ~
+        !is.na(df$weight_g),
+
+      Metric == "condition" ~
+        !is.na(df$length_mm) & df$length_mm > 0 &
+        !is.na(df$weight_g) & df$weight_g > 0,
+
+      Metric %in% c("maturation", "maturation_by_sex") ~
+        !is.na(df$maturity) & df$maturity != "UNK",
+
+      TRUE ~ TRUE
+    )
+  }
+
+  plot_idf <- idf %>%
+    dplyr::filter(method %in% Method, age %in% Ages) %>%
+    dplyr::mutate(
+      Year_Season = paste0(year, "_", Season),
+      SAR_cat = as.factor(SAR_cat),
+      .metric_valid = metric_valid_filter(., Metric)
+    ) %>%
+    dplyr::filter(.metric_valid)
+
+ Samples = plot_idf%>%
+   dplyr::group_by(Sample_event, age)%>%
+   dplyr::summarize(N = n())%>%
+   dplyr::filter(N>=min_N)
+
+ plot_idf = plot_idf%>%
+   dplyr::filter(interaction(Sample_event,age)%in%interaction(Samples$Sample_event, Samples$age))
+
+ plot_gdf = gdf%>%dplyr::filter(method %in% Method,!is.na(N_ha_rel), age %in% Ages, interaction(Sample_event,age)%in%interaction(Samples$Sample_event, Samples$age))
 
 
   if (!is.null(filters)) {
@@ -92,6 +126,7 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
     plot_idf = dplyr::filter(plot_idf, Lk_yr %in% filters)
     plot_gdf = dplyr::filter(plot_gdf, Lk_yr %in% filters)
   }
+
 
 
 #The survival plot uses a different data set than all the other plots. min_N is less relevant at each strata because N = 0 is a valid observation for survival.
@@ -132,23 +167,11 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
     dplyr::ungroup()
   #The filter above should ensure there are at least 2 groups in contrast above the min_N
 
-  #min_N for idf does not filter out individual age classes (because the x-axis is usually just length), and binned by Lk_yr and season. So min_N is by Lk_yr and season
   plot_idf <- plot_idf%>%
     dplyr::mutate(Year_Season = paste0(year,"_",Season),
                   SAR_cat = as.factor(SAR_cat))%>%
-    dplyr::group_by(Lk_yr, Season)%>%
-    dplyr::filter(paste0(Lk_yr, Season)%in% paste0(plot_gdf$Lk_yr, plot_gdf$Season))%>%#this is an option if want ot match plot_gdf data. Use Lk_yr_Age to b emost strict
-    #dplyr::filter(dplyr::n()>min_N)%>%
+    dplyr::filter(paste0(Lk_yr, Season)%in% paste0(plot_gdf$Lk_yr, plot_gdf$Season))%>%
     dplyr::ungroup()
-
-  #Could add an additional filter [!is.na(plot_idf$length_mm),]
-  #But it is better to get the warning I think. It still plots
-
-  #Should add an option to include or eliminate outliers.
-  #dplyr::filter(Outlier %in% c(0,NA))
-
-
-  #Make colour and fill = to Contrast always.
 
 #Base ggplot call for a plots based on group data with age as x-axis
 pg = ggplot2::ggplot(data = plot_gdf, ggplot2::aes(x = .data$Dec.Age, fill = get(Contrast), colour = get(Contrast), shape = get(controls[1])))+#, y = .data$NetXN
@@ -171,7 +194,6 @@ p = pg +
   ggplot2::facet_wrap(~.data$locale_name+.data$Year_Season, scales = "free_y", ncol = 4)
 }
 
-#Avg growth plot additions.
 if (Metric == "mu_growth_FL"){
   p = pg +
     ggplot2::geom_point(ggplot2::aes(y = .data$NetX_FL),size = 2.5, alpha = 0.7, position = ggplot2::position_dodge(width = 0.5))+
@@ -290,9 +312,7 @@ if(Metric == "condition"){
     ggplot2::scale_y_log10()
 }
 
-
-
- if (Metric == "growth_wt"){
+if (Metric == "growth_wt"){
 
 p = pi +
      ggplot2::geom_point(ggplot2::aes(x = .data$Dec.Age, y = .data$weight_g), size = 2.5, alpha = 0.5, position = ggplot2::position_dodge(width = 0.3))+
@@ -314,9 +334,7 @@ if (Metric == "growth_FL"){
     #ggplot2::facet_wrap(.data$locale_name~.data$Year_Season, scales = "free_y")
 }
 
-
-
-  if (Metric == "FL_age_facets"){
+if (Metric == "FL_age_facets"){
     p = pi+
       ggplot2::geom_point(ggplot2::aes(x = .data$locale_name, y = .data$length_mm),size = 2.5, alpha = 0.5, position = ggplot2::position_dodge(width = 0.75))+
       ggplot2::facet_wrap(~.data$Dec.Age, scales = "free")+
@@ -325,11 +343,7 @@ if (Metric == "growth_FL"){
       ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 50, vjust = 1, hjust=1))
   }
 
-
-
-
-
-  if (Metric == "FL_density"){
+if (Metric == "FL_density"){
     if(min_N<20){warning("Min_N should be set >=20 for pop length frequency plots")}
 
 p = pi+
@@ -376,9 +390,7 @@ if (Metric == "wt_hist"){
 
 }
 
-
-
-  if (Metric == "maturation_by_sex"){
+if (Metric == "maturation_by_sex"){
     if(min_N<5){warning("Min_N should be set >=5 for maturation plots")}
     mat_df = plot_idf%>%
               dplyr::filter(maturity != 'UNK', !is.na(sex), !grepl(",",Geno_rel))%>%

@@ -6,51 +6,44 @@
 \usage{
 plot_selectivity(
   species,
-  design = "SGN7",
+  sample_design_code = "SGN7",
   Sample_event = NULL,
-  plot_sub_designs = TRUE,
-  classes = 75:900,
+  include_sub_designs = TRUE,
   facet = c("none", "species", "design", "event", "locale_year"),
   colour_by = c("auto", "species", "design", "interaction")
 )
 }
 \arguments{
-\item{species}{Character vector of requested species codes (e.g., \code{"KO"}).}
+\item{species}{Character vector of requested species codes.}
 
-\item{design}{Character vector of net design codes (e.g., \code{"SGN7"}).
-Only used when \code{Sample_event} is \code{NULL}.}
+\item{sample_design_code}{Character vector of design codes. Used only when
+\code{Sample_event} is \code{NULL}.}
 
-\item{Sample_event}{Optional character vector of sample event IDs. If supplied,
-curves are sourced from \code{sel_lookup_event} (plus optional sub-design curves).}
+\item{Sample_event}{Optional character vector of sample event IDs.}
 
-\item{plot_sub_designs}{Logical; when \code{TRUE} and \code{Sample_event} is supplied,
-also plot the sub-design curves listed in \code{sel_lookup_event$event_designs}.}
-
-\item{classes}{Numeric vector of fork-length classes (mm). Must align with curve length.}
+\item{include_sub_designs}{Logical; if \code{TRUE} and \code{Sample_event} is
+supplied, also plot design-level curves listed in
+\code{sel_lookup_event$event_designs}.}
 
 \item{facet}{Faceting mode: \code{"none"}, \code{"species"}, \code{"design"},
-\code{"event"}, or \code{"locale_year"}.
-\code{"event"} facets by \code{Sample_event}; \code{"locale_year"} facets by
-\code{locale_name + year}. Event-based facets are only meaningful when
-\code{Sample_event} is supplied.}
+\code{"event"}, or \code{"locale_year"}.}
 
-\item{colour_by}{Colour grouping: \code{"auto"}, \code{"species"}, \code{"design"}, or \code{"interaction"}.}
+\item{colour_by}{Colour grouping: \code{"auto"}, \code{"species"},
+\code{"design"}, or \code{"interaction"}.}
+
+\item{classes}{Optional numeric vector of length classes corresponding to the
+stored selectivity curves. Defaults to package data \code{sel_classes}.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Creates selectivity curves from the \code{DP2R} package lookup tables
-(\code{sel_lookup} and \code{sel_lookup_event}). You can plot by net
-\code{design}, by \code{Sample_event}, and optionally include event-level
-(overall) curves plus the sub-design curves associated with each event.
+Creates a \pkg{ggplot2} visualization of relative selectivity curves from the
+lookup tables in \pkg{DP2R}. Curves can be plotted by
+\code{sample_design_code}, by \code{Sample_event}, and optionally include
+event-level overall curves plus the sub-design curves associated with each
+event.
 
-This version adds:
-\itemize{
-  \item Faceting by \code{Sample_event} via \code{facet = "event"} (when \code{Sample_event} is supplied)
-  \item Faceting by \code{locale_name + year} via \code{facet = "locale_year"} (when those columns exist in \code{sel_lookup_event})
-  \item Correct replication of design-level curves to each \code{Sample_event} so faceting works
-  \item Event-level \dQuote{Overall (event)} curve is always drawn first in ordering and drawn thicker in black
-  \item Automatic use of \code{DP2R::approx_select_spp} when requested species are not present in \code{sel_lookup}
-}
+This function is a thin plotting wrapper around [selectivity_curves()] and
+[prep_selectivity_plot_data()].
 }

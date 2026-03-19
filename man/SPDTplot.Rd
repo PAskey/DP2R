@@ -61,7 +61,7 @@ In other words, even if one group meets the minimum sample size, if the gourp it
 
 \item{min_groups}{an integer to set a minimum number of contrast groups meeting the minimum sample size(min_N) within the grouping levels of the gdf data frame (lake, year, age) to include in plots.}
 
-\item{filters}{a vector of lake-years returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()}
+\item{filters}{a vector of Sample_event returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()}
 
 \item{save_pdf}{a logical TRUE/FALSE indicating whether a copy of the plot should be saved with the filename Metric.pdf}
 }

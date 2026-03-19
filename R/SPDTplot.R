@@ -51,7 +51,7 @@
 #' @param min_N an integer to set a minimum sample size to include in plots. This sample size applies to each contrast group.
 #' In other words, even if one group meets the minimum sample size, if the gourp it is being contrasted against does not, then that contrast (Lk_yr_age) will be removed.
 #' @param min_groups an integer to set a minimum number of contrast groups meeting the minimum sample size(min_N) within the grouping levels of the gdf data frame (lake, year, age) to include in plots.
-#' @param filters a vector of lake-years returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
+#' @param filters a vector of Sample_event returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
 #' @param save_pdf a logical TRUE/FALSE indicating whether a copy of the plot should be saved with the filename Metric.pdf
 #' @examples
 #' #Must be connected to VPN if working remotely
@@ -125,9 +125,9 @@ SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, m
 
 
   if (!is.null(filters)) {
-    plot_wide = dplyr::filter(wide_df, Lk_yr %in% filters)
-    plot_idf = dplyr::filter(plot_idf, Lk_yr %in% filters)
-    plot_gdf = dplyr::filter(plot_gdf, Lk_yr %in% filters)
+    plot_wide = dplyr::filter(wide_df, Sample_event %in% filters)
+    plot_idf = dplyr::filter(plot_idf, Sample_event %in% filters)
+    plot_gdf = dplyr::filter(plot_gdf, Sample_event %in% filters)
   }
 
 

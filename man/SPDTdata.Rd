@@ -26,7 +26,7 @@ Entering a value for contrast will filter to lake years that had fish present fr
 
 \item{Genotypes}{an optional character string or character vector to filter data to specific genotypes (e.g. 2n or AF3n)}
 
-\item{filters}{a vector of lake-years returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()}
+\item{filters}{a vector of Sample_events returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()}
 
 \item{Data_source}{a TRUE FALSE value to indicate whether to load data form the SLD, or just use data tables in the Environment.}
 }

@@ -20,7 +20,7 @@
 #' @param drop_controls an optional character string or vector to drop covariates from the potenital Contrast list that would be used as controls when filtering and grouping data by the selected Contrast. Default is the full list of potential contrasts are usd as controls (i.e. none are dropped). Using all controls may be restrictive for some contrasts (eg. Comparing species it would be difficult to control for size-at-release SAR_cat because they are released at different stage-sizes)
 #' @param Strains an optional character string or character vector describing the strain code (SPDTdata format e.g. "RB" for Rainbow Trout) for source population. This will filter to only those strains listed
 #' @param Genotypes an optional character string or character vector to filter data to specific genotypes (e.g. 2n or AF3n)
-#' @param filters a vector of lake-years returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
+#' @param filters a vector of Sample_events returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
 #' @param Data_source a TRUE FALSE value to indicate whether to load data form the SLD, or just use data tables in the Environment.
 #' @examples
 #' #Must be connected to VPN if working remotely
@@ -80,8 +80,8 @@ idf = Biological
 clipsdf = Link_rel#clipsum
 
 if (!is.null(filters)) {
-idf = dplyr::filter(idf, Lk_yr %in% filters)
-clipsdf = dplyr::filter(clipsdf, Lk_yr %in% filters)
+idf = dplyr::filter(idf, Sample_event %in% filters)
+clipsdf = dplyr::filter(clipsdf, Sample_event %in% filters)
 }
 
 if (!is.null(Spp)) {

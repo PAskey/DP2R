@@ -50,16 +50,20 @@ Clipsrel = Link_rel%>%
   dplyr::filter(Nclips>0)
 
 #Add "NONE" to aged (or unaged?) fish where there are multiple clips at large but this group is not clipped (so unique)
-#Link_rel = Link_rel%>%
-#  dplyr::mutate(mark_code = ifelse((is.na(mark_code)& !is.na(sby_rel) & !stringr::str_detect(sby_rel, ",")&(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$year,Clipsrel$species_code))),"NONE",mark_code))
+#Unaged releases can be a unique product over many years.
+#Also inconsistent use of NA and "NONE" in database, so need to duplicate release rows with NA as NONE to cover both
+#Old attempt excluded any cases where Strain, Genod or LIfestage was not unique, but the other 2 might be, so updated.
+#Link_none = Link_rel%>%
+#  dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
+#                                      !is.na(sby_rel)&
+#                                      !dplyr::if_any(c(Strain_rel, Geno_rel, LS_rel),
+#                                              ~ stringr::str_detect(.x, ","))&
+#                                      (interaction(WBID,sample_year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),"NONE",mark_code))
 
-#Update for above when unaged releases are a unique product over many years. Also inconsistent use of NA and "NONE" in database, so can duplicate to cover both
 Link_none = Link_rel%>%
-  dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
-                                      !is.na(sby_rel)&
-                                      !dplyr::if_any(c(Strain_rel, Geno_rel, LS_rel),
-                                              ~ stringr::str_detect(.x, ","))&
-                                      (interaction(WBID,sample_year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),"NONE",mark_code))
+  dplyr::filter(is.na(mark_code))%>%
+  dplyr::mutate(mark_code = "NONE")
+
 
 Link_rel = rbind(Link_rel, Link_none)%>%unique()
 
@@ -68,6 +72,7 @@ Link_rel = rbind(Link_rel, Link_none)%>%unique()
 vwIndividualFish = vwIndividualFish%>%
   dplyr::mutate(mark_code = ifelse(
     (mark_code %in% c("UNK","NONE")&!(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),NA,mark_code))
+
 
 ##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT S NA?
 

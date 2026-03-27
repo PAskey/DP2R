@@ -54,7 +54,7 @@ Cam_xdata <- function(data = Edata) {
     dplyr::summarize(ndays = length(unique(date)),
                      n = dplyr::n(),
                      sumcnts = sum(CAM))%>%
-    dplyr::filter(!is.na(view_location_name),ndays>=12&sumcnts>=5)%>%
+    dplyr::filter(!is.na(view_location_name),ndays>=12&sumcnts>=3)%>%
     dplyr::ungroup()%>%
     dplyr::select(WBID, year)%>%
     dplyr::distinct()

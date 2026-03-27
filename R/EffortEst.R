@@ -100,7 +100,8 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     dplyr::summarize(Pred_E = round(sum(predx)), .groups = "drop")
 
 
-  # Final effort calculations
+  # Final effort calculations, and lake dimensions
+  data(Lakes)
   sum.pred <- Pred.summary %>%
     dplyr::left_join(Pred_lakes, by = "lakeview_yr") %>%
     dplyr::left_join(.,Lakes[,c("WBID","area_ha")], by = "WBID")%>%
@@ -153,7 +154,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
   #Step 1. Pull all of the lakeview_yrs that were crated specific for verification using the Cam_xdata_dt.R function within Effort2R()
   Xcam<-sum.pred%>%dplyr::filter(grepl('AIR|CAM|GR', lakeview_yr))%>%
 
-    #Step 2. COpare the effort estimates between camera view and full lake using same sample days/hours
+    #Step 2. Compare the effort estimates between camera view and full lake using same sample days/hours
     dplyr::select(c(WBID:N,Angler_days))%>%
     tidyr::pivot_wider(names_from = method, values_from = c(Angler_days))%>%
     dplyr::rowwise()%>%

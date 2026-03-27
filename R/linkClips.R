@@ -142,16 +142,26 @@ info_cols = c(
 )
 
 #Perform 'Stocked_age' test to see if the entered age is within possible released ages.
-Link_rel_noage = Link_rel%>%dplyr::filter(is.na(age))%>%dplyr::select(all_of(c("Sample_event",info_cols)))
+Link_rel_noage = Link_rel%>%
+  dplyr::filter(is.na(age))%>%
+  dplyr::select(all_of(c("Sample_event",info_cols)))
+
+#Is the observe age within possible ages Stocked_age == TRUE
+#IS the obserevd age within +/-1 of the observed age = potentail ageing error
 Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
                                 by = c("Sample_event","species_code","mark_code"))%>%
   dplyr::rowwise()%>%
-  dplyr::mutate(Stocked_age = age%in%as.integer(strsplit(Poss_Age, ",")[[1]]))%>%
+  dplyr::mutate(
+    Stocked_age = age%in%as.integer(strsplit(Poss_Age, ",")[[1]])#,
+    #Stock_age_close = any(abs(age - as.integer(strsplit(Poss_Age, ",")[[1]])) <= 1)
+    )%>%
   dplyr::ungroup()
 
 
 #If no, then leave the possibilities as is (probably an ageing error or natural recruit or not stocked).
 Bioambig = Biopossible[!Biopossible$Stocked_age,]
+#Any fish that does not match a stocking age and doesn't have a clip is Poss_NR
+Bioambig$Poss_NR[!is.na(Bioambig$age)&(is.na(Bioambig$mark_code)|Bioambig$mark_code=="NONE")]<-1
 
 #If yes, then re-link releases to biological using age or brood year as a linking variable.
 Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-c(sby_rel:Poss_Age))
@@ -181,7 +191,7 @@ Biological = Biological%>%
     Genotype = replace_uni(ploidy, Geno_rel, Poss_NR),
     sby_code = replace_uni(sby_code, sby_rel, Poss_NR),
     age = dplyr::case_when(
-      !is.na(sby_code)&is.na(age) ~ as.numeric(sby2age(species_code, sby_code, year)),
+      !is.na(sby_code)&is.na(age) ~ as.numeric(DP2R::sby2age(species_code, sby_code, year)),
       TRUE ~ as.numeric(age)  # Ensure age is numeric
     ),
     Dec.Age = round(.data$age+(lubridate::decimal_date(as.Date(.data$date_assessed)) - lubridate::year(as.Date(.data$date_assessed))),2)
@@ -212,7 +222,7 @@ Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
                 Spp_class = paste(sort(unique(subfamily)), collapse = ','),
                 Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
 
-Biological <- add_selectivity(Biological)%>%
+Biological <- DP2R::add_selectivity(Biological)%>%
                 dplyr::mutate(NetX = 1/select)
 
 vwFishCollection<<- vwFishCollection %>%

@@ -17,7 +17,7 @@
 #' @importFrom magrittr "%>%"
 
 
-Cam_xdata_dt <- function(data = Edata_dt, min_days = 12, min_obs_E = 6) {
+Cam_xdata_dt <- function(data = Edata_dt, min_days = 12, min_obs_E = 4) {
 
   # Summarize AIR and GRD methods
   air_grd_summary <- data[method %in% c("AIR", "GRD"),

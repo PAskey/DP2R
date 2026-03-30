@@ -151,7 +151,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
 
 
   #Create a table of camera expansion factors when verification counts have been conducted
-  #Step 1. Pull all of the lakeview_yrs that were crated specific for verification using the Cam_xdata_dt.R function within Effort2R()
+  #Step 1. Pull all of the lakeview_yrs that were created specific for verification using the Cam_xdata_dt.R function within Effort2R()
   Xcam<-sum.pred%>%dplyr::filter(grepl('AIR|CAM|GR', lakeview_yr))%>%
 
     #Step 2. Compare the effort estimates between camera view and full lake using same sample days/hours

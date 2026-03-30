@@ -4,7 +4,7 @@
 \alias{Cam_xdata_dt}
 \title{Cam_xdata_dt}
 \usage{
-Cam_xdata_dt(data = Edata_dt, min_days = 12, min_obs_E = 6)
+Cam_xdata_dt(data = Edata_dt, min_days = 12, min_obs_E = 4)
 }
 \arguments{
 \item{data}{a data.table object to search for ground or air based verification counts of camera data. defaults to data, as this function is run within the Effort2R() function}

@@ -105,7 +105,7 @@ Effort2R <- function() {
   Edata_dt <- data.table::setcolorder(Edata_dt, desired_order)
 
   ##Add in camera expansion factor lakeview_yrs
-  Edata_dt <- Cam_xdata_dt(Edata_dt)
+  Edata_dt <- Cam_xdata_dt(Edata_dt, min_days = 12, min_obs_E = 4)
 
 
   # Convert back to data.frame if necessary

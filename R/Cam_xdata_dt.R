@@ -1,4 +1,6 @@
-#' A function to create data subsets to estimate expansion factors for cameras where there has been ground/air counts to verify. Effort estimates from Camera data is compared to estimates from AIR/GRD with EffortEst function and the ratio of those is considered the expansion. The cam_xdata_dt is an improved version of Cam_xdata that used data.table and is much faster.
+#' A function to create data subsets to estimate expansion factors for cameras where there has been ground/air counts to verify.
+#' Effort estimates from Camera data is compared to estimates from AIR/GRD with EffortEst function and the ratio of those is considered the expansion.
+#' The cam_xdata_dt is an improved version of Cam_xdata that used data.table and is much faster.
 #'
 #'
 #' @title Cam_xdata_dt

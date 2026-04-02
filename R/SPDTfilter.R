@@ -14,6 +14,7 @@
 #' @param WBIDs an optional character string or character vector describing the WBIDs to include in data.
 #' @param Years an optional integer or vector describing the sampling years to include in data.
 #' @param Regions an optional character string or character vector describing the management regions to include in data.
+#' @param Methods an optional character string or vector decribing the capture methods to include ni the data
 #' @param Sample_events an optional character string or character vector describing the sampling events to include in data.
 #' @examples
 #' #Must be connected to VPN if working remotely
@@ -36,6 +37,7 @@ SPDTfilter <- function(
     WBIDs = NULL,
     Years = NULL,
     Regions = NULL,
+    Methods = NULL,
     minN = NULL
 ) {
 
@@ -74,6 +76,13 @@ SPDTfilter <- function(
     keep <- intersect(
       keep,
       Biological$Sample_event[Biological$Region %in% Regions]
+    )
+  }
+
+  if (!is.null(Methods)) {
+    keep <- intersect(
+      keep,
+      Biological$Sample_event[Biological$method %in% Methods]
     )
   }
 

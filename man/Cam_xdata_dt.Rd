@@ -14,7 +14,9 @@ Cam_xdata_dt(data = Edata_dt, min_days = 12, min_obs_E = 4)
 \item{min_obs_E}{the minimum amount of angler effort (any of shore, boat, etc.) observed by the camera during the verification counts. It is important to have non-0 counts during verification counts. SOmetimes cameras are used in low effort areas, but obviously if 0 effort is observed by the camera during all of the verification counts then there is no way to expand to full lake effort.}
 }
 \description{
-A function to create data subsets to estimate expansion factors for cameras where there has been ground/air counts to verify. Effort estimates from Camera data is compared to estimates from AIR/GRD with EffortEst function and the ratio of those is considered the expansion. The cam_xdata_dt is an improved version of Cam_xdata that used data.table and is much faster.
+A function to create data subsets to estimate expansion factors for cameras where there has been ground/air counts to verify.
+Effort estimates from Camera data is compared to estimates from AIR/GRD with EffortEst function and the ratio of those is considered the expansion.
+The cam_xdata_dt is an improved version of Cam_xdata that used data.table and is much faster.
 }
 \examples{
 

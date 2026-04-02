@@ -99,6 +99,18 @@ DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCoun
       c("survey_type", "fish_collection_type"),
       names(data)
     )
+
+    #Cleans survey type which has issues on Ten Mile Lake
+    if ("survey_type" %in% names(data)) {
+      data <- data %>%
+        dplyr::mutate(
+          survey_type = dplyr::if_else(
+            survey_type %in% c("CR", "DB", "AN", "COS"),
+            survey_type,
+            "CR"
+          )
+        )
+    }
     if (length(candidates) > 0 && !"method" %in% names(data)) {
       data <- data %>%
         dplyr::mutate(method = dplyr::coalesce(!!!rlang::syms(candidates)))%>%

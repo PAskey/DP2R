@@ -11,6 +11,7 @@ SPDTfilter(
   WBIDs = NULL,
   Years = NULL,
   Regions = NULL,
+  Methods = NULL,
   minN = NULL
 )
 }
@@ -26,6 +27,8 @@ SPDTfilter(
 \item{Years}{an optional integer or vector describing the sampling years to include in data.}
 
 \item{Regions}{an optional character string or character vector describing the management regions to include in data.}
+
+\item{Methods}{an optional character string or vector decribing the capture methods to include ni the data}
 
 \item{minN}{an optional integer or vector describing the minimum acceptable catch within a sample_event for the data to be included}
 }

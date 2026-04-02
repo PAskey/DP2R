@@ -6,7 +6,7 @@
 \usage{
 SPDTplot(
   Metric = NULL,
-  Method = "GN",
+  Methods = c("AN", "CR", "GN", "TN"),
   Ages = c(0:100),
   min_N = 3,
   min_groups = 1,
@@ -52,7 +52,7 @@ It is possible to add ggplot layers after the SPDTplot call for details on thing
 
 In all cases the data will be grouped by the "Contrast" stated during the SPDT data call.}
 
-\item{Method}{a character string describing the capture method. Defaults to "GN" (gillnet), but any other capture method code fo rmthe database is acceptable.}
+\item{Methods}{a character string describing the capture method. Defaults to c("AN","CR","GN","TN") (gillnet), but any other capture method code fo rmthe database is acceptable.}
 
 \item{Ages}{a numeric vector or value of the ages to include in plotting}
 

@@ -46,7 +46,7 @@
 #' It is possible to add ggplot layers after the SPDTplot call for details on things like faceting or scales.
 #'
 #' In all cases the data will be grouped by the "Contrast" stated during the SPDT data call.
-#' @param Method a character string describing the capture method. Defaults to "GN" (gillnet), but any other capture method code fo rmthe database is acceptable.
+#' @param Methods a character string describing the capture method. Defaults to c("AN","CR","GN","TN") (gillnet), but any other capture method code fo rmthe database is acceptable.
 #' @param Ages a numeric vector or value of the ages to include in plotting
 #' @param min_N an integer to set a minimum sample size to include in plots. This sample size applies to each contrast group.
 #' In other words, even if one group meets the minimum sample size, if the gourp it is being contrasted against does not, then that contrast (Lk_yr_age) will be removed.
@@ -67,7 +67,7 @@
 #' @importFrom rlang .data
 
 
-SPDTplot <- function(Metric = NULL, Method = "GN", Ages = c(0:100), min_N = 3, min_groups = 1, filters = NULL, save_pdf = FALSE){
+SPDTplot <- function(Metric = NULL, Methods = c("AN","CR","GN","TN"), Ages = c(0:100), min_N = 3, min_groups = 1, filters = NULL, save_pdf = FALSE){
 
   #If no specific contrast is given in SPDT data, then make defaults for colouring and shape schemes
 

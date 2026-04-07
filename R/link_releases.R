@@ -33,12 +33,6 @@ link_releases <- function(){
   Releases = vwLegacyRelease%>%
     dplyr::mutate(age = sby2age(species_code, brood_year, release_year))
 
-  #Clean up not needed if james gets this done.
- # Releases <- Releases%>%dplyr::mutate(
- #       lifestage_code = dplyr::case_when(
- #         .data$g_size > 0.1 & .data$g_size < 4 &
- #         .data$age == 0 & .data$lifestage_code == "UNK" ~ "FR"),
-
 
   Releases$Season = metR::season(Releases$release_dt)
 
@@ -60,18 +54,6 @@ link_releases <- function(){
       Biom_ha = sum(biom_ha, na.rm = T),
       .groups = "drop"
     )
-
-  #Round all decimal columns
-  Releases <- Releases %>%
-    dplyr::mutate(
-      dplyr::across(
-        where(is.double),
-        ~ round(.x, 1)
-      )
-    )
-
-
-
 
   #Step 2. Find the list of sampled lake-years in the vwIndividualFish table that could be linked to releases.
   # Step 2 (revised): sampled events (not just lake-years)
@@ -183,8 +165,16 @@ link_releases <- function(){
       AF = all(AF),
       Sterile = all(Sterile),
       LS_rel     = split_collapse(LS_rel),
-      wt_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(wt_rel)/mean(wt_rel)) < 0.5,  mean(wt_rel), NA_real_), 1),
-      N_ha_rel = round(dplyr::if_else(dplyr::n()==1 | (sd(N_ha_rel)/mean(N_ha_rel)) < 0.15, mean(N_ha_rel), NA_real_), 0),
+      wt_rel = dplyr::if_else(
+        dplyr::n()==1 | (sd(wt_rel)/mean(wt_rel)) < 0.5,
+        mean(wt_rel),
+        NA_real_
+      ),
+      N_ha_rel = dplyr::if_else(
+        dplyr::n()==1 | (sd(N_ha_rel)/mean(N_ha_rel)) < 0.15,
+        mean(N_ha_rel),
+        NA_real_
+      ),
       avg_rel_date = as.Date(mean(avg_rel_date)),
       Poss_Age = { v <- sort(unique(age)); v <- v[!is.na(v)]; dplyr::na_if(stringr::str_c(v, collapse=","), "") },
       .groups = "drop"
@@ -248,6 +238,24 @@ link_releases <- function(){
   Link_rel <- rbind(aged_in_lake, unaged_in_lake) %>%
     dplyr::left_join(Stable, by = c("WBID","sample_year")) %>%
     tidyr::replace_na(list(Stable_yrs = 0))
+
+###SERIES OF ROUNDING EVENTS FOR BETTER DISPLAY
+  Releases <- Releases %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("area_ha", "size_g", "wt_rel", "Quantity_ha", "N_ha_rel", "Biom_ha", "Biomass_kg")),
+                    ~ round(.x, 1))
+    )
+
+  Rel_sampled <- Rel_sampled %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("area_ha", "size_g", "wt_rel", "Quantity_ha", "N_ha_rel", "Biom_ha", "Biomass_kg")),
+                    ~ round(.x, 1))
+    )
+
+  Link_rel <- Link_rel %>%
+    dplyr::mutate(
+      dplyr::across(dplyr::any_of(c("wt_rel", "N_ha_rel")), ~ round(.x, 1))
+    )
 
 
 

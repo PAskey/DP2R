@@ -112,7 +112,7 @@ idf <- idf%>%
 #Let's create a grouped data set
 #Summarize mean values for growth and tallies for numbers, etc. EXCLUDES OUTLIERS
 gdf <- idf%>%
-  dplyr::group_by(.data$locale_name, .data$WBID, .data$year, .data$Lk_yr, .data$Sample_event, .data$Season, .data$method, .data$species_code, .data$Strain_rel,.data$Geno_rel, .data$Poss_Age, .data$age, .data$sby_code, .data$mark_code, .data$N_ha_rel, .data$wt_rel, .data$SAR_cat)%>%
+  dplyr::group_by(.data$locale_name, .data$WBID, .data$year, .data$Lk_yr, .data$Sample_event, .data$Season, .data$method, .data$species_code, .data$Strain_rel,.data$Geno_rel, .data$LS_rel, .data$Poss_Age, .data$age, .data$sby_code, .data$avg_rel_date, .data$mark_code, .data$N_ha_rel, .data$wt_rel, .data$SAR_cat)%>%
   dplyr::summarize( #Dec.Age = mean(.data$Dec.Age,na.rm = TRUE),
                     mean_FL = mean(.data$length_mm[.data$outlier%in%c(0,NA)], na.rm = TRUE),
                     sd_FL = sd(.data$length_mm[.data$outlier%in%c(0,NA)], na.rm = TRUE),
@@ -153,7 +153,7 @@ clipsdf = dplyr::left_join(uni_events[,c(1:4)], clipsdf, by = 'Sample_event')%>%
           dplyr::filter(!is.na(species_code))#Remove cases that did not match a stocking event.
 ###################################################################################################################
 gdf = dplyr::full_join(gdf, clipsdf[,c("locale_name","WBID", "Lk_yr", "Sample_event","sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_rel", "mark_code", "N_ha_rel","avg_rel_date", "wt_rel", "LS_rel")],
-                       by = c("locale_name","WBID", "Lk_yr","Sample_event", "year"="sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","wt_rel"))%>%
+                       by = c("locale_name","WBID", "Lk_yr","Sample_event", "year"="sample_year", "Season", "method", "age", "species_code", "Strain_rel","Geno_rel", "sby_code"="sby_rel", "mark_code", "N_ha_rel","avg_rel_date","wt_rel", "LS_rel"))%>%
   dplyr::filter(Lk_yr%in%idf$Lk_yr)
 
 #Keep species comparisons that will not have a mark
@@ -177,7 +177,7 @@ gdf <- gdf %>%
 #Have to add in average sample data at this point, otherwise it is NA for all cases of non-clips, etc.
 gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Sample_event","Season", "method"))%>%
   dplyr::mutate(
-    Dec.Age = round(.data$age+(lubridate::decimal_date(.data$avg_sample_date) - year),2),
+    Dec.Age = round(.data$age+(lubridate::decimal_date(.data$avg_sample_date) - .data$year),2),
     Delta_t = as.numeric(difftime(avg_sample_date,avg_rel_date, units = "days")))
 
 
@@ -185,7 +185,7 @@ gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Sample_event","Season",
 exps <- gdf%>%
   dplyr::filter(!grepl(",", .data[[Contrast]])) %>%#discount groups that included multiple levels within contrast (they are always separated by commas)
   dplyr::group_by(Lk_yr, age, !!!rlang::syms(controls))%>%
-  dplyr::summarize(Ncontrasts = length(unique(na.omit(get(Contrast)))),
+  dplyr::summarize(Ncontrasts = length(unique(na.omit(.data[[Contrast]]))),
                    Nclips = length(unique(na.omit(mark_code))),
                    .groups = "drop")%>%
   dplyr::filter((Nclips>=Ncontrasts&Ncontrasts>1)|(Contrast == "species_code"&Ncontrasts>1))%>%
@@ -193,8 +193,8 @@ exps <- gdf%>%
 
 
 
-idf<-subset(idf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",get(Contrast)),!is.na(get(Contrast)), get(Contrast)!="UNK")
-gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",get(Contrast)),!is.na(get(Contrast)), get(Contrast)!="UNK")
+idf<-subset(idf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
+gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
 
 ######################################################################################################
 ##Effort section

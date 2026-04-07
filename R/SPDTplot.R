@@ -77,7 +77,7 @@ SPDTplot <- function(Metric = NULL, Methods = c("AN","CR","GN","TN"), Ages = c(0
   }
 
 
-  plot_wide = wide_df%>%dplyr::filter(method %in% Method, age %in% Ages, N >=min_N)
+  plot_wide = wide_df%>%dplyr::filter(method %in% Methods, age %in% Ages, N >=min_N)
 
   #Some name simplification for plotting.
   plot_wide = plot_wide%>%
@@ -105,7 +105,7 @@ SPDTplot <- function(Metric = NULL, Methods = c("AN","CR","GN","TN"), Ages = c(0
   }
 
   plot_idf <- idf %>%
-    dplyr::filter(method %in% Method, age %in% Ages) %>%
+    dplyr::filter(method %in% Methods, age %in% Ages) %>%
     dplyr::mutate(
       Year_Season = paste0(year, "_", Season),
       SAR_cat = as.factor(SAR_cat),
@@ -121,7 +121,7 @@ SPDTplot <- function(Metric = NULL, Methods = c("AN","CR","GN","TN"), Ages = c(0
  plot_idf = plot_idf%>%
    dplyr::filter(interaction(Sample_event,age)%in%interaction(Samples$Sample_event, Samples$age))
 
- plot_gdf = gdf%>%dplyr::filter(method %in% Method,!is.na(N_ha_rel), age %in% Ages, interaction(Sample_event,age)%in%interaction(Samples$Sample_event, Samples$age))
+ plot_gdf = gdf%>%dplyr::filter(method %in% Methods,!is.na(N_ha_rel), age %in% Ages, interaction(Sample_event,age)%in%interaction(Samples$Sample_event, Samples$age))
 
 
   if (!is.null(filters)) {

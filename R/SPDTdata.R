@@ -184,17 +184,20 @@ gdf = dplyr::left_join(gdf, uni_events, by = c("Lk_yr", "Sample_event","Season",
 
 exps <- gdf%>%
   dplyr::filter(!grepl(",", .data[[Contrast]])) %>%#discount groups that included multiple levels within contrast (they are always separated by commas)
-  dplyr::group_by(Lk_yr, age, !!!rlang::syms(controls))%>%
+  dplyr::group_by(Lk_yr, Sample_event, age, !!!rlang::syms(controls))%>%
   dplyr::summarize(Ncontrasts = length(unique(na.omit(.data[[Contrast]]))),
                    Nclips = length(unique(na.omit(mark_code))),
+                   N = sum(N),
                    .groups = "drop")%>%
   dplyr::filter((Nclips>=Ncontrasts&Ncontrasts>1)|(Contrast == "species_code"&Ncontrasts>1))%>%
+  dplyr::group_by(Sample_event)%>%
+  dplyr::filter(N>0)%>%
   droplevels()
 
 
 
-idf<-subset(idf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
-gdf<-subset(gdf, Lk_yr%in%exps$Lk_yr)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
+idf<-subset(idf, Sample_event%in%exps$Sample_event)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
+gdf<-subset(gdf, Sample_event%in%exps$Sample_event)%>%dplyr::filter(!grepl(",",.data[[Contrast]]),!is.na(.data[[Contrast]]), .data[[Contrast]]!="UNK")
 
 ######################################################################################################
 ##Effort section

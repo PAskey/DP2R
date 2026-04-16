@@ -25,7 +25,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE) {
@@ -40,13 +40,13 @@ DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCoun
                          pwd = pwd")}
 
 
-  #stopifnot(is.null(envir) || inherits(envir, "environment"))
+  # Ensure vwPaAssessEvent is included if dependent tables (neededin assess_event_name) are requested
+  #Can remove this if get a consistent assess_event_name or asses_event_id across all views.
+  dependent_tables <- c("vwFishCollection", "vwCollectCount", "vwIndividualFish")
 
-  # Manually fetch the 'Releases' table. This works
-  #releases_data <- DBI::dbGetQuery(conn, "SELECT * FROM paris.Releases")
-
-  # Use the retrieved data instead of relying on DP2R
-  #print(head(releases_data))
+  if (any(Tables %in% dependent_tables)) {
+    Tables <- unique(c(Tables, "vwPaAssessEvent"))
+  }
 
 
   # Identify invalid tables or spelling mistakes
@@ -94,6 +94,17 @@ DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCoun
 
   #Rename some columns to shorter, standard descriptors if present in table
   rename_columns_if_present <- function(data) {
+    # Recode fish_collection_type before combining
+    if ("fish_collection_type" %in% names(data)) {
+      data <- data %>%
+        dplyr::mutate(
+          fish_collection_type = dplyr::case_when(
+            fish_collection_type %in% c("FK", "TN") ~ "LT",
+            TRUE ~ fish_collection_type
+          )
+        )
+    }
+
     # If any sample_type cols exist, coalesce them into `method`
     candidates <- intersect(
       c("survey_type", "fish_collection_type"),
@@ -187,7 +198,9 @@ DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCoun
 
         if (!is.null(date_vec)) {
 
-          ret$Season <- metR::season(date_vec)
+          #ret$Season <- metR::season(date_vec)
+
+          ret$Season <- Season_cat(date_vec)#A season category that extends winter into March
           ret$year <- lubridate::year(date_vec)
 
           ret$Sample_event <- stringr::str_c(
@@ -198,6 +211,29 @@ DP2R <- function(Tables = c("vwLegacyRelease","vwIndividualFish", "vwCollectCoun
             sep = "_"
           )
         }
+
+        #This was an alternative approach, but there seems to be alot of errors in missassignment of fish to assess_events
+     #   event_dates <- vwPaAssessEvent %>%
+    #      dplyr::select(assess_event_id, assess_event_name, start_date) %>%
+    #      dplyr::rename(assess_start = start_date)%>%
+    #      dplyr::mutate(assess_start = as.POSIXct(assess_start))
+
+    #    common_cols <- intersect(names(ret), names(event_dates))
+
+    #    ret <- ret %>%
+    #      dplyr::left_join(event_dates, by = common_cols) %>%
+    #      dplyr::filter(!is.na(assess_start)) %>%
+    #      dplyr::mutate(
+    #        Season = Season_cat(assess_start),
+    #        year = lubridate::year(assess_start),
+    #        Sample_event = stringr::str_c(
+    #          stringr::str_trim(method),
+    #          stringr::str_trim(WBID),
+    #          year,
+    #          Season,
+    #          sep = "_"
+    #        )
+    #      )
       }
     }
 

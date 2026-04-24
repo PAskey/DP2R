@@ -31,7 +31,7 @@ Lakes[idx, ] <- DP2R::find_elevation(Lakes[idx, ])
 
 #Estimate ice-on or off based on elevation and region
 idx <- which(!is.na(Lakes$elevation_m))
-Lakes <- estimate_lake_ice(Lakes[idx, ])
+Lakes <- DP2R::estimate_lake_ice(Lakes[idx, ])
 
 
 usethis::use_data(Lakes, overwrite = TRUE)

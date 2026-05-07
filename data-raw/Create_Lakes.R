@@ -3,7 +3,7 @@
 DP2R::DP2R(Tables = c("vwWaterbodyLake","vwWaterbody"))
 
 #vwWaterbody includes rivers
-Lakes = dplyr::left_join(vwWaterbodyLake, vwWaterbody)
+Lakes = dplyr::full_join(vwWaterbodyLake, vwWaterbody, by = c("WBID","gazetted_name"))
 
 
 cols_order = c("waterbody_type", "region_code", "WBID", "gazetted_name", "alias", "locale_name", "nearest_town",  "area_ha", "lake_volume_m3", "max_depth_m", "mean_depth_m", "elevation_m",

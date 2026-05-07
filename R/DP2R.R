@@ -135,6 +135,12 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
       . == "accepted_brood_year" ~ "brood_year",
       TRUE ~ .
     ))
+
+    # Convert "NA" strings in character columns and NaN in numeric columns to NA
+    data <- data %>%
+      dplyr::mutate(dplyr::across(where(is.character), ~ dplyr::na_if(.x, "NA"))) %>%
+      dplyr::mutate(dplyr::across(where(is.numeric), ~ replace(.x, is.nan(.x), NA)))
+
     data
   }
 
@@ -210,32 +216,22 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
             ret$Season,
             sep = "_"
           )
+
+          # Remove bad sample events
+          #Group of 3g fry lakes where clips were bad or misread
+          Bad_data <- c(
+            "GN_00607THOM_2018_FAL",
+            "GN_00719THOM_2018_FAL",
+            "GN_00072STHM_2018_FAL",
+            "GN_00072STHM_2019_FAL"
+          )
+
+          ret <- ret %>%
+            dplyr::filter(!(Sample_event %in% Bad_data))
+
+
         }
-
-        #This was an alternative approach, but there seems to be alot of errors in missassignment of fish to assess_events
-     #   event_dates <- vwPaAssessEvent %>%
-    #      dplyr::select(assess_event_id, assess_event_name, start_date) %>%
-    #      dplyr::rename(assess_start = start_date)%>%
-    #      dplyr::mutate(assess_start = as.POSIXct(assess_start))
-
-    #    common_cols <- intersect(names(ret), names(event_dates))
-
-    #    ret <- ret %>%
-    #      dplyr::left_join(event_dates, by = common_cols) %>%
-    #      dplyr::filter(!is.na(assess_start)) %>%
-    #      dplyr::mutate(
-    #        Season = Season_cat(assess_start),
-    #        year = lubridate::year(assess_start),
-    #        Sample_event = stringr::str_c(
-    #          stringr::str_trim(method),
-    #          stringr::str_trim(WBID),
-    #          year,
-    #          Season,
-    #          sep = "_"
-    #        )
-    #      )
-      }
-    }
+}}
 
     # Assign the result to the specified environment if provided
     if (!is.null(envir)) assign(tb, ret, envir = envir)

@@ -163,9 +163,16 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
   # Function to determine mean for numeric and concatenate for character
   mean_or_concat <- function(x) {
     if (is.numeric(x)) {
-      return(mean(x, na.rm = TRUE))  # Calculate mean to one decimale place for numeric columns
+      if (all(is.na(x))) return(NA_real_)
+      return(mean(x, na.rm = TRUE))
     } else {
-      return(toString(unique(x)))  # Concatenate unique values for character columns
+      vals <- unique(x[!is.na(x)])
+
+      if (length(vals) == 0) {
+        return(NA_character_)
+      } else {
+        return(toString(vals))
+      }
     }
   }
 

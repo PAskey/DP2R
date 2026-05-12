@@ -30,8 +30,17 @@ link_releases <- function(){
 
   #Step 1. Clean and standardize release data
 
-  Releases = vwLegacyRelease%>%
-    dplyr::mutate(age = sby2age(species_code, brood_year, release_year))
+  Releases <- vwLegacyRelease %>%
+    select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
+    left_join(
+      Lakes %>% filter(!is.na(area_ha))%>%select(WBID, area_ha),
+      by = "WBID"
+    ) %>%
+    mutate(
+      age = sby2age(species_code, brood_year, release_year),
+      quantity_ha = quantity/area_ha,
+      biom_ha = biomass/area_ha
+    )
 
 
   Releases$Season = metR::season(Releases$release_dt)
@@ -190,26 +199,27 @@ link_releases <- function(){
     dplyr::summarise(
       Strain_rel     = paste(sort(unique(Strain_use)), collapse = ","),
       Geno_rel       = paste(sort(unique(ploidy)), collapse = ","),
-      Total_Quantity = round(sum(Quantity), -2),
+      Total_Quantity = sum(Quantity),
       .groups = "drop"
     ) %>%
     dplyr::arrange(WBID, release_year)
 
-  #Calculate stocking frequency
+  #Calculate stocking frequency and if quantity stable to within "limit"
+  limit = 0.1
   Stable_base <- Stable_base %>%
     dplyr::group_by(WBID) %>%
     dplyr::mutate(
-      gap = release_year - lag(release_year)
-    ) %>%
-    dplyr::mutate(
-      Frequency = as.integer(stats::median(gap, na.rm = TRUE))
+      gap = release_year - lag(release_year),
+      Frequency = as.integer(stats::median(gap, na.rm = TRUE)),
+      qty_stable = abs(Total_Quantity - lag(Total_Quantity)) /
+        lag(Total_Quantity)<limit
     ) %>%
     dplyr::ungroup()
 
   #Create a prescription key
   Stable_base <- Stable_base %>%
     dplyr::mutate(
-      presc_key = paste(Strain_rel, Geno_rel, Total_Quantity, Frequency, sep = "|")
+      presc_key = paste(Strain_rel, Geno_rel, qty_stable, Frequency, sep = "|")
     )
 
   #Expand over years where fish not released but potentially sampled
@@ -236,6 +246,10 @@ link_releases <- function(){
 
   ##THIS TABLE IS ADDED TO ENVIRO_______________________________________________
   Link_rel <- rbind(aged_in_lake, unaged_in_lake) %>%
+    dplyr::left_join(Stable, by = c("WBID","sample_year")) %>%
+    tidyr::replace_na(list(Stable_yrs = 0))
+
+  Rel_sampled <-Rel_sampled%>%
     dplyr::left_join(Stable, by = c("WBID","sample_year")) %>%
     tidyr::replace_na(list(Stable_yrs = 0))
 

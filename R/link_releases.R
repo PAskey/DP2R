@@ -31,12 +31,12 @@ link_releases <- function(){
   #Step 1. Clean and standardize release data
 
   Releases <- vwLegacyRelease %>%
-    select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
-    left_join(
-      Lakes %>% filter(!is.na(area_ha))%>%select(WBID, area_ha),
+    dplyr::select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
+    dplyr::left_join(
+      Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::select(WBID, area_ha),
       by = "WBID"
     ) %>%
-    mutate(
+    dplyr::mutate(
       age = sby2age(species_code, brood_year, release_year),
       quantity_ha = quantity/area_ha,
       biom_ha = biomass/area_ha

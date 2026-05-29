@@ -117,6 +117,12 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
         dplyr::select(-tidyselect::any_of(candidates))
     }
 
+   #Need to separate out "strain" which is in request view so as to not make a duplicate in block below
+     if("strain" %in% names(data)) {
+      data <- data %>%
+        dplyr::rename(strain_name = strain)
+    }
+
 
     data<-data %>%
       dplyr::rename_with(~ dplyr::case_when(

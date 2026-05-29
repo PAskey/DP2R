@@ -21,6 +21,7 @@
 #' @param Strains an optional character string or character vector describing the strain code (SPDTdata format e.g. "RB" for Rainbow Trout) for source population. This will filter to only those strains listed
 #' @param Genotypes an optional character string or character vector to filter data to specific genotypes (e.g. 2n or AF3n)
 #' @param filters a vector of Sample_events returned from the SPDTfilter() function. SPDTfilter() allows for filtering to various non-biological aspects to the data, lakes, years, regions, et.c See?SPDTfilter()
+#' @param min_N is a minimum sample size across contrast groups. Defalts to 0, so attempted experiments that yelded 0 fish are included
 #' @param Data_source a TRUE FALSE value to indicate whether to load data form the SLD, or just use data tables in the Environment.
 #' @examples
 #' #Must be connected to VPN if working remotely
@@ -45,6 +46,7 @@ SPDTdata <- function(Spp = NULL,
                      Contrast = c("species_code", "Strain_rel", "SAR_cat", "Geno_rel"),
                      drop_controls = NULL, Strains = NULL, Genotypes = NULL,
                      filters = NULL,
+                     min_N = 0,
                      Data_source = TRUE){
 
   if (missing(Contrast)) {
@@ -191,7 +193,7 @@ exps <- gdf%>%
                    .groups = "drop")%>%
   dplyr::filter((Nclips>=Ncontrasts&Ncontrasts>1)|(Contrast == "species_code"&Ncontrasts>1))%>%
   dplyr::group_by(Sample_event)%>%
-  dplyr::filter(N>0)%>%
+  dplyr::filter(N>=min_N)%>%
   droplevels()
 
 
@@ -287,7 +289,7 @@ for(i in 1:(length(cats)-1)){
                     )%>%
       dplyr::rowwise()%>%
       dplyr::filter(0<(sum(a_xN, b_xN)),
-                    !is.na(sum(a_xN, b_xN, a_Nr, b_Nr)))%>%#Do not want na.rm = T becasue want to remove cases where there are NA in one of the categories
+                    !is.na(sum(a_xN, b_xN, a_Nr, b_Nr)))%>%#Do not want na.rm = T because want to remove cases where there are NA in one of the categories
       dplyr::mutate(Recap_p = a_xN/(a_xN+b_xN),
                     Release_p = a_Nr/(a_Nr+b_Nr),
                     a = cats[i], b = cats[j],

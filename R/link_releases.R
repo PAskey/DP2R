@@ -64,33 +64,49 @@ link_releases <- function(){
       .groups = "drop"
     )
 
-  #Step 2. Find the list of sampled lake-years in the vwIndividualFish table that could be linked to releases.
-  # Step 2 (revised): sampled events (not just lake-years)
+  #Step 2. Find the list of sample events in the Collections that could be linked to releases.
   # event_start_dt = first sampling date in that Sample_event
-  Sampled_events <- vwIndividualFish %>%
-    dplyr::semi_join(Releases, by = c("WBID", "species_code")) %>%
-    dplyr::group_by(WBID, species_code, year, Sample_event) %>%
-    dplyr::summarise(
-      event_start_dt = min(as.Date(date_assessed), na.rm = TRUE),
-      max_age_obs = suppressWarnings(max(age[age < 50], na.rm = TRUE)),
+  Sampled_events <- vwFishCollection %>%
+    group_by(WBID, year, Sample_event) %>%
+    summarise(
+      event_start_dt = min(as.Date(start_dt), na.rm = TRUE),
       .groups = "drop"
     )
 
+  #Use data on max age observed to see how far to span linkages to releases
+  Observed_ages <- vwIndividualFish %>%
+    filter(age < 50) %>%
+    group_by(WBID, species_code) %>%
+    summarise(
+      max_age_obs = max(age, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  Sampled_events_species <- Sampled_events %>%
+    inner_join(
+      Releases %>%
+        distinct(WBID, species_code),
+      by = "WBID"
+    ) %>%
+    left_join(
+      Observed_ages,
+      by = c("WBID", "species_code")
+    )
 
 
 
   endage = 6# Set the max age you expect to retrieve stocked fish in a lake. This value is overwritten if fish were aged at an older age from a given lake at any point in time. So this is more like an average maximum age sampled.
 
-  #The Sampled_only variable filters lakes and releases to cases where a lake has been assessed (data exists in the vwIndividualFish Table). However, some cases in the vwIndividualFish table are not true in-lake sampling events.We will remove these from here and all further analyses. If they are wanted use SLD2R() only.
-
-  maxxages <- Sampled_events %>%
+#The sample events with maximum age to search back through releases.
+  maxxages <- Sampled_events_species %>%
     dplyr::mutate(max = pmax(endage, max_age_obs, na.rm = TRUE)) %>%
     dplyr::group_by(WBID, species_code) %>%
     dplyr::mutate(max = max(max, na.rm = TRUE)) %>%   # lake-species max across events
     dplyr::ungroup()
 
 
-  #Step 3. From those sampled lake years find the sequence of previous stocking years to that lake that could have fish in the lake at the time of sampling. Search back to oldest age observed or the endage.
+  #Step 3. From those sampled lake years find the sequence of previous stocking years to that lake that could have fish in the lake at the time of sampling.
+  #Search back to oldest age observed or the endage.
 
   Sampled <- maxxages %>%
     dplyr::filter(!is.na(year)) %>%

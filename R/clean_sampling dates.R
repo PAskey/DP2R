@@ -29,12 +29,16 @@ clean_sampling_dates <- function(df) {
 
   sampling_chr <- as.character(df$sampling_dt)
 
-  dt_mdy <- suppressWarnings(lubridate::mdy_hm(sampling_chr))
-  dt_dmy <- suppressWarnings(lubridate::dmy_hm(sampling_chr))
+  # Expected format: YYYY-MM-DD HH:MM:SS
+  dt_ymd <- suppressWarnings(lubridate::ymd_hms(sampling_chr))
 
-  month_mdy <- lubridate::month(dt_mdy)
-  day_mdy <- lubridate::day(dt_mdy)
-  month_dmy <- lubridate::month(dt_dmy)
+  # Alternate interpretation if month/day were reversed:
+  # YYYY-DD-MM HH:MM:SS
+  dt_ydm <- suppressWarnings(lubridate::ydm_hms(sampling_chr))
+
+  month_ymd <- lubridate::month(dt_ymd)
+  day_ymd <- lubridate::day(dt_ymd)
+  month_ydm <- lubridate::month(dt_ydm)
 
   month_category <- function(x) {
     dplyr::case_when(
@@ -57,19 +61,30 @@ clean_sampling_dates <- function(df) {
   df_flag <- df |>
     dplyr::mutate(
       sampling_chr = sampling_chr,
-      dt_mdy = dt_mdy,
-      dt_dmy = dt_dmy,
-      month_mdy = month_mdy,
-      day_mdy = day_mdy,
-      month_dmy = month_dmy,
-      category_mdy = month_category(month_mdy),
-      category_dmy = month_category(month_dmy),
-      rank_mdy = category_rank(category_mdy),
-      rank_dmy = category_rank(category_dmy),
-      ambiguous = day_mdy <= 12,
-      different_category = !is.na(category_mdy) & !is.na(category_dmy) & category_mdy != category_dmy,
-      moving_to_warmer = rank_dmy > rank_mdy,
-      moving_to_colder = rank_dmy < rank_mdy
+      dt_ymd = dt_ymd,
+      dt_ydm = dt_ydm,
+      month_ymd = month_ymd,
+      day_ymd = day_ymd,
+      month_ydm = month_ydm,
+      category_ymd = month_category(month_ymd),
+      category_ydm = month_category(month_ydm),
+      rank_ymd = category_rank(category_ymd),
+      rank_ydm = category_rank(category_ydm),
+
+      # Ambiguous only if both month and day are <= 12
+      ambiguous =
+        !is.na(month_ymd) &
+        !is.na(day_ymd) &
+        month_ymd <= 12 &
+        day_ymd <= 12,
+
+      different_category =
+        !is.na(category_ymd) &
+        !is.na(category_ydm) &
+        category_ymd != category_ydm,
+
+      moving_to_warmer = rank_ydm > rank_ymd,
+      moving_to_colder = rank_ydm < rank_ymd
     )
 
   temp_df <- df_flag |>
@@ -80,7 +95,7 @@ clean_sampling_dates <- function(df) {
     dplyr::filter(
       ambiguous,
       different_category,
-      month_mdy %in% c(12, 1, 2),
+      month_ymd %in% c(12, 1, 2),
       depth > 0,
       result >= 7,
       moving_to_warmer
@@ -95,7 +110,7 @@ clean_sampling_dates <- function(df) {
       ambiguous,
       different_category,
       !(region_code %in% c(1, 2, "1", "2")),
-      month_mdy %in% c(3, 4, 11),
+      month_ymd %in% c(3, 4, 11),
       depth > 1,
       result >= 14,
       moving_to_warmer
@@ -108,8 +123,8 @@ clean_sampling_dates <- function(df) {
     dplyr::filter(
       ambiguous,
       different_category,
-      month_mdy %in% c(5, 6, 7, 8, 9, 10),
-      depth %in% c(1,2),
+      month_ymd %in% c(5, 6, 7, 8, 9, 10),
+      depth %in% c(1, 2),
       result <= 4,
       moving_to_colder
     ) |>
@@ -143,8 +158,8 @@ clean_sampling_dates <- function(df) {
     ) |>
     dplyr::mutate(
       needs_flip = event_id %in% flip_ids,
-      sampling_dt_original = dt_mdy,
-      sampling_dt = dplyr::if_else(needs_flip, dt_dmy, dt_mdy),
+      sampling_dt_original = dt_ymd,
+      sampling_dt = dplyr::if_else(needs_flip, dt_ydm, dt_ymd),
       flip_reason = dplyr::if_else(needs_flip, flip_reason, NA_character_)
     )
 
@@ -158,12 +173,21 @@ clean_sampling_dates <- function(df) {
 
   df_clean |>
     dplyr::select(
-      -sampling_chr, -dt_mdy, -dt_dmy,
-      -month_mdy, -day_mdy, -month_dmy,
-      -category_mdy, -category_dmy,
-      -rank_mdy, -rank_dmy,
-      -ambiguous, -different_category,
-      -moving_to_warmer, -moving_to_colder,
-      -event_id, -needs_flip
+      -sampling_chr,
+      -dt_ymd,
+      -dt_ydm,
+      -month_ymd,
+      -day_ymd,
+      -month_ydm,
+      -category_ymd,
+      -category_ydm,
+      -rank_ymd,
+      -rank_ydm,
+      -ambiguous,
+      -different_category,
+      -moving_to_warmer,
+      -moving_to_colder,
+      -event_id,
+      -needs_flip
     )
 }

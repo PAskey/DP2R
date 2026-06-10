@@ -58,10 +58,54 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
                paste(invalid_tables, collapse = ", ")))
   }
 
+
+  # Optional SQL filters applied automatically when specific columns exist
+  build_where_clause <- function(col_names) {
+
+    conditions <- character(0)
+
+    # Remove TL records from any table containing this field
+    if ("water_analysis_type" %in% col_names) {
+      conditions <- c(
+        conditions,
+        "water_analysis_type <> 'TL'"
+      )
+    }
+
+    # Remove records identified by EffortClean
+
+    if ("fishing_effort_id" %in% col_names) {
+
+      data("remove_E_ids", package = "DP2R")
+
+      remove_E_ids <- unique(na.omit(remove_E_ids))
+
+      if (length(remove_E_ids) > 0) {
+
+        id_list <- paste(remove_E_ids, collapse = ", ")
+
+        conditions <- c(
+          conditions,
+          sprintf("fishing_effort_id NOT IN (%s)", id_list)
+        )
+      }
+    }
+
+
+    if (length(conditions) == 0) {
+      return(NULL)
+    }
+
+    paste(conditions, collapse = " AND ")
+  }
+
+
+
   # FIXED helper: schema-qualified, case-insensitive, excludes nvarchar(max) + geography, etc.
+  #SUes where clause built above to efficiently filter out cases not needed across network
   fetch_data_excluding_types <- function(conn, table_name,
                                          exclude_types = c("geography","varbinary","ntext")) {
-    # 1) include CHARACTER_MAXIMUM_LENGTH in the metadata
+
     col_info <- DBI::dbGetQuery(conn, sprintf("
     SELECT COLUMN_NAME AS name,
            DATA_TYPE   AS type_name,
@@ -73,20 +117,44 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
     tp  <- tolower(col_info$type_name)
     len <- col_info$column_size
 
-    # 2) keep columns NOT in excluded types (case-insensitive)
+    # Keep columns not in excluded types
     not_excluded_type <- !tp %in% tolower(exclude_types)
 
-    # 3) drop only (MAX) for varchar/nvarchar/varbinary (length == -1)
-    is_max_strbin <- tp %in% c("varchar","nvarchar","varbinary") & !is.na(len) & len == -1
+    # Drop varchar(max), nvarchar(max), varbinary(max)
+    is_max_strbin <- tp %in% c("varchar","nvarchar","varbinary") &
+      !is.na(len) &
+      len == -1
 
     keep <- not_excluded_type & !is_max_strbin
 
     cols_to_include <- col_info$name[keep]
-    if (!length(cols_to_include)) stop("After exclusions, no columns remain to select.")
 
-    select_list <- paste(DBI::dbQuoteIdentifier(conn, cols_to_include), collapse = ", ")
-    from_id     <- DBI::dbQuoteIdentifier(conn, DBI::Id(schema = "dbo", table = table_name))
-    sql         <- sprintf("SELECT %s FROM %s", select_list, from_id)
+    if (!length(cols_to_include)) {
+      stop("After exclusions, no columns remain to select.")
+    }
+
+    select_list <- paste(
+      DBI::dbQuoteIdentifier(conn, cols_to_include),
+      collapse = ", "
+    )
+
+    from_id <- DBI::dbQuoteIdentifier(
+      conn,
+      DBI::Id(schema = "dbo", table = table_name)
+    )
+
+    # Build any automatic filters based on available columns
+    where_clause <- build_where_clause(col_info$name)
+
+    sql <- sprintf(
+      "SELECT %s FROM %s",
+      select_list,
+      from_id
+    )
+
+    if (!is.null(where_clause)) {
+      sql <- paste(sql, "WHERE", where_clause)
+    }
 
     DBI::dbGetQuery(conn, sql)
   }

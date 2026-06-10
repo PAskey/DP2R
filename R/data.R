@@ -397,3 +397,37 @@ NULL
 #' @source DataPond database (vwFishCollection, vwIndividualFish, SampleDesign_MeshSizeCode)
 "sel_lookup_event"
 NULL
+# ----------------------------------------------------------------------
+#' Excluded Fishing Effort IDs
+#'
+#' A vector of `fishing_effort_id` values that should be excluded from analyses
+#' and data extraction workflows in the DP2R package. These IDs represent
+#' known problematic, duplicate, or otherwise invalid effort records identified
+#' through data cleaning procedures (e.g., EffortClean rules).
+#'
+#' This object is used internally by DP2R data-loading functions to automatically
+#' filter out unwanted records when the relevant column is present in a table.
+#'
+#' @format An integer vector of fishing effort IDs.
+#'
+#' @details
+#' The values in `remove_E_ids` are generated from multiple cleaning rules,
+#' including duplicate detection, missing value filtering, and domain-specific
+#' exclusions (e.g., invalid sampling conditions).
+#'
+#' This object is periodically updated as new data quality issues are identified.
+#'
+#' @usage remove_E_ids
+#'
+#' @family DP2R data objects
+#'
+#' @seealso \code{\link{DP2R}}
+#'
+#' @examples
+#' # View excluded IDs
+#' head(remove_E_ids)
+#'
+#' # Check how many records are excluded
+#' length(remove_E_ids)
+"remove_E_ids"
+NULL

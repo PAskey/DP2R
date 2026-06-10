@@ -26,6 +26,9 @@ Lakewater2R <- function(envir = globalenv(), keep.raw = FALSE) {
     envir = target_env
   )[[1]]
 
+  vwLakeWater = vwLakeWater%>%
+    dplyr::filter(water_analysis_type!="TL")
+
 
   params = c(
     "Alkalinity - Low Level : Alkalinity (Total as CaCO3)",
@@ -38,9 +41,9 @@ Lakewater2R <- function(envir = globalenv(), keep.raw = FALSE) {
   )
 
   vwLakeWater <- vwLakeWater %>%
-    filter(test_name %in% params) %>%
-    mutate(
-      test_name = recode(
+    dplyr::filter(test_name %in% params) %>%
+    dplyr::mutate(
+      test_name = dplyr::recode(
         test_name,
         "Alkalinity - Low Level : Alkalinity (Total as CaCO3)" = "Alkalinity",
         "Nitrogen (Total) : Total Nitrogen (N)" = "TN",
@@ -49,23 +52,23 @@ Lakewater2R <- function(envir = globalenv(), keep.raw = FALSE) {
       )
     )
 
-  vwLakeWater <- clean_sampling_dates(vwLakeWater)
+  vwLakeWater <- DP2R:::clean_sampling_dates(vwLakeWater)
 
   #Change TN and TP to more readable units
   vwLakeWater <- vwLakeWater %>%
     mutate(
-      result = if_else(test_name %in% c("TN", "TP") & unit_code == "mg/L",
+      result = dplyr::if_else(test_name %in% c("TN", "TP") & unit_code == "mg/L",
                        result * 1000,
                        result),
-      unit_code = if_else(test_name %in% c("TN", "TP") & unit_code == "mg/L",
+      unit_code = dplyr::if_else(test_name %in% c("TN", "TP") & unit_code == "mg/L",
                           "µg/L",
                           unit_code)
     )
 
   #Exclude any waterbodies with saltwater influence (high TDS) or bad data
   vwLakeWater <- vwLakeWater %>%
-    group_by(WBID, sampling_dt) %>%
-    filter(!any(test_name == "TDS" & result > 2000, na.rm = TRUE)) %>%
+    dplyr::group_by(WBID, sampling_dt) %>%
+    dplyr::filter(!any(test_name == "TDS" & result > 2000, na.rm = TRUE)) %>%
     ungroup()
 
   Surface_tests = c("Alkalinity", "TN",  "TP", "pH", "TDS" )

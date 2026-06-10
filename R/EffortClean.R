@@ -69,12 +69,14 @@ EffortClean <- function() {
 
 #Step 3. Remove all duplicates (About 15000).
 N_before_dup = nrow(Edata_dt)
+ids_before_dedup = Edata_dt$fishing_effort_id
   Edata_dt <- Edata_dt[
     order(WBID, method, assessed_dt, num_shore_ice, num_spv, num_boat, num_ice_tent, view_location_name, assess_event_id, is.na(comment), fishing_effort_id),
     .SD[1],  # Keep the first occurrence (non-NA comment prioritized = ~150 more comments), and order assess_event_id so consistent in which assess_event_id can be removed.
     by = .(WBID, method, assessed_dt, num_shore_ice, num_spv, num_boat, num_ice_tent, view_location_name)
   ]
 N_after_dup = nrow(Edata_dt)
+remove_dups = setdiff(ids_before_dedup, Edata_dt$fishing_effort_id)
 
 
   #After initial filters, we need a somewhat difficult data clean. There are cases in the data set where people entered rows of data, where no data was collected. For example, a flight may have been cancelled due to poor weather, but the rest of the lakes are entered with NA values for all counts. This is a problem, because in historical data there are also cases where NAs were entered instead of a 0. The following filter attempts to remove cases, where all count variables are NA and this can somewhat safely be assumed that the NA are due to poor or impossible counting conditions as opposed to actual 0s.
@@ -98,7 +100,16 @@ N_before_clean = nrow(Edata_dt)
   remove_night <- Edata_dt[all0 & hour %in% c(0:5,22:24) & grepl(pattern, tolower(comment))|hour %in% c(0:4,23:24)]
 
   # Combine all data to be removed into a vector of unique fishing_effort_id
-  removals <- unique(c(remove_NAs$fishing_effort_id, remove_night$fishing_effort_id))
+  removals <- unique(c(remove_dups, remove_NAs$fishing_effort_id, remove_night$fishing_effort_id))
+
+  # Existing known data to remove
+  data("remove_E_ids", package = "DP2R")
+
+  # Append any new IDs
+  remove_E_ids <- unique(c(remove_E_ids, removals))
+
+  # Save updated dataset
+  usethis::use_data(remove_E_ids, overwrite = TRUE)
 
   # Perform anti-join to remove identified rows efficiently
   Edata_dt <- Edata_dt[!fishing_effort_id %in% removals]

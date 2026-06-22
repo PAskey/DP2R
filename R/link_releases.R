@@ -2,7 +2,7 @@
 #' Function only usable with connection to DataPond.
 #'
 #'
-#' This is a non-exported funciton to simplify code using the releases table to understand all possible stocked groups that could be in a lake at any given time.
+#' This function simplifies code using the releases table to understand all possible stocked groups that could be in a lake at any given time.
 #' In cases where clips are unique, then fields for age, strain, genotype are updated.
 #' Previous version of this function was within SPDT as SPDTreleases
 #' Ultimately, as upload filters and cleaning are improved in the main database, this function could become obsolete.
@@ -33,7 +33,7 @@ link_releases <- function(){
   Releases <- vwLegacyRelease %>%
     dplyr::select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
     dplyr::left_join(
-      Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::select(WBID, area_ha),
+      DP2R::Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::select(WBID, area_ha),
       by = "WBID"
     ) %>%
     dplyr::mutate(
@@ -135,7 +135,7 @@ link_releases <- function(){
     ) %>%
     dplyr::filter(
       release_year < sample_year |
-        (release_year == sample_year & rel_Date <= event_start_dt)
+        (release_year == sample_year & dplyr::coalesce(rel_Date <= event_start_dt, TRUE))
     ) %>%
     dplyr::mutate(Rel_Age = age, age = (sample_year - release_year) + Rel_Age)
 
@@ -207,7 +207,7 @@ link_releases <- function(){
       avg_rel_date = dplyr::if_else(
         stringr::str_detect(sby_rel, ","),
         as.Date(NA),
-        as.Date(mean(rel_Date))
+        as.Date(mean(avg_rel_date))
       ),
       Poss_Age = { v <- sort(unique(age)); v <- v[!is.na(v)]; dplyr::na_if(stringr::str_c(v, collapse=","), "") },
       .groups = "drop"

@@ -46,7 +46,7 @@ if(!exists("Releases")){stop("Need to start with a data load from SLD (i.e. Data
 #Number of unique clips potentially at large in a given year if the fish is not aged
 Clipsrel = Link_rel%>%
   dplyr::group_by(WBID, sample_year, Sample_event, species_code)%>%
-  dplyr::summarise(Nclips = sum(!is.na(mark_code)&is.na(age)))%>%
+  dplyr::summarise(Nclips = sum(!is.na(mark_code)&is.na(age)), .groups = "drop")%>%
   dplyr::filter(Nclips>0)
 
 #Add "NONE" to aged (or unaged?) fish where there are multiple clips at large but this group is not clipped (so unique)
@@ -72,6 +72,8 @@ Link_rel = rbind(Link_rel, Link_none)%>%unique()
 vwIndividualFish = vwIndividualFish%>%
   dplyr::mutate(mark_code = ifelse(
     (mark_code %in% c("UNK","NONE")&!(interaction(WBID,year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),NA,mark_code))
+
+vwIndividualFish <<- vwIndividualFish#Persist cleaned mark_code back to the global copy, consistent with the other tables updated below
 
 
 ##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT S NA?
@@ -103,16 +105,17 @@ SampleN = vwIndividualFish%>%
 #Search for natural recruits in stocked lakes with stocked species by year
 NR_sum = NR%>%
   dplyr::filter(interaction(WBID, year)%in%interaction(SampleN$WBID, SampleN$year), species_code%in%c("CT","EB","KO","RB", "WCT"))%>%
-  dplyr::group_by(region_code, gazetted_name, WBID,year,species_code)%>%
+  dplyr::group_by(region_code, locale_name, WBID,year,species_code)%>%
   dplyr::summarise(N = dplyr::n(),
                    Nnr = sum(Poss_NR,na.rm = T),
                    pNR = round(Nnr/N, 2),
                    MeanFL = round(mean(length_mm, na.rm = T)),
-                   MaxFL = max(length_mm, na.rm = T))
+                   MaxFL = max(length_mm, na.rm = T),
+                   .groups = "drop")
 
 #Specific lake-species combos where at least 30% of the fish could potentially be natural recruits
 NR_lakes = NR_sum%>%
-  dplyr::group_by(region_code, gazetted_name, WBID,species_code)%>%
+  dplyr::group_by(region_code, locale_name, WBID,species_code)%>%
   dplyr::reframe(pNR = round((mean(pNR)+pNR[year == max(year)])/2,2), N = sum(N))%>%
   dplyr::filter(pNR>0.29)%>%
   dplyr::ungroup()
@@ -161,7 +164,7 @@ Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
 #If no, then leave the sby_rel possibilities as is (probably an ageing error or natural recruit or not stocked).
 #However, remove everything else as clearly a natural recruit or data/clip error
 Bioambig = Biopossible[!Biopossible$Stocked_age,]%>%
-  mutate(across(c(Strain_rel:avg_rel_date), ~ ifelse(Stock_age_close==FALSE, NA, .x)))
+  dplyr::mutate(across(c(Strain_rel:avg_rel_date), ~ ifelse(Stock_age_close==FALSE, NA, .x)))
 
 
 #Any fish that does not match a stocking age and doesn't have a clip is Poss_NR
@@ -219,7 +222,7 @@ Ind_Spp = vwIndividualFish%>%dplyr::select(WBID, year, species_code)%>%unique()
 
 Lake_Spp = dplyr::full_join(Cap_Spp,Ind_Spp)
 
-Lake_Spp = dplyr::left_join(Lake_Spp, Species, by = "species_code")%>%
+Lake_Spp = dplyr::left_join(Lake_Spp, DP2R::Species, by = "species_code")%>%
   dplyr::select(WBID:stocked_species, subfamily)%>%
   dplyr::group_by(WBID, year)%>%
   dplyr::mutate(All_spp = paste(sort(unique(species_code)), collapse = ','),
@@ -230,15 +233,15 @@ Biological <- DP2R::add_selectivity(Biological)%>%
                 dplyr::mutate(NetX = 1/select)
 
 vwFishCollection<<- vwFishCollection %>%
-  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+  dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
   dplyr::relocate(locale_name, .after = WBID)
 
 vwCollectCount<<- vwCollectCount %>%
-  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+  dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
   dplyr::relocate(locale_name, .after = WBID)
 
 vwWaterbodyLake<<- vwWaterbodyLake %>%
-  dplyr::left_join(lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+  dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
   dplyr::relocate(locale_name, .after = WBID)
 
 

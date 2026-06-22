@@ -164,7 +164,7 @@ Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
 #If no, then leave the sby_rel possibilities as is (probably an ageing error or natural recruit or not stocked).
 #However, remove everything else as clearly a natural recruit or data/clip error
 Bioambig = Biopossible[!Biopossible$Stocked_age,]%>%
-  dplyr::mutate(across(c(Strain_rel:avg_rel_date), ~ ifelse(Stock_age_close==FALSE, NA, .x)))
+  dplyr::mutate(across(c(Strain_rel:avg_rel_date), ~ dplyr::if_else(Stock_age_close==FALSE, NA, .x)))
 
 
 #Any fish that does not match a stocking age and doesn't have a clip is Poss_NR

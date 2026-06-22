@@ -15,7 +15,7 @@
 #' @examples
 #' #' Must be connected to VPN if working remotely
 #'
-#' CLEANreleases()
+#' link_releases()
 #' @importFrom magrittr "%>%"
 #' @importFrom rlang .data
 
@@ -26,7 +26,7 @@
 link_releases <- function(){
 
   #Check data has been loaded.
-  if(!exists("vwLegacyRelease")|!exists("vwIndividualFish")){DP2R()}
+  if(!exists("vwLegacyRelease")|!exists("vwIndividualFish")|!exists("vwFishCollection")){DP2R()}
 
   #Step 1. Clean and standardize release data
 
@@ -67,28 +67,28 @@ link_releases <- function(){
   #Step 2. Find the list of sample events in the Collections that could be linked to releases.
   # event_start_dt = first sampling date in that Sample_event
   Sampled_events <- vwFishCollection %>%
-    group_by(WBID, year, Sample_event) %>%
-    summarise(
+    dplyr::group_by(WBID, year, Sample_event) %>%
+    dplyr::summarise(
       event_start_dt = min(as.Date(start_dt), na.rm = TRUE),
       .groups = "drop"
     )
 
   #Use data on max age observed to see how far to span linkages to releases
   Observed_ages <- vwIndividualFish %>%
-    filter(age < 50) %>%
-    group_by(WBID, species_code) %>%
-    summarise(
+    dplyr::filter(age < 50) %>%
+    dplyr::group_by(WBID, species_code) %>%
+    dplyr::summarise(
       max_age_obs = max(age, na.rm = TRUE),
       .groups = "drop"
     )
 
   Sampled_events_species <- Sampled_events %>%
-    inner_join(
+    dplyr::inner_join(
       Releases %>%
-        distinct(WBID, species_code),
+        dplyr::distinct(WBID, species_code),
       by = "WBID"
     ) %>%
-    left_join(
+    dplyr::left_join(
       Observed_ages,
       by = c("WBID", "species_code")
     )
@@ -99,9 +99,9 @@ link_releases <- function(){
 
 #The sample events with maximum age to search back through releases.
   maxxages <- Sampled_events_species %>%
-    dplyr::mutate(max = pmax(endage, max_age_obs, na.rm = TRUE)) %>%
+    dplyr::mutate(max_age = pmax(endage, max_age_obs, na.rm = TRUE)) %>%
     dplyr::group_by(WBID, species_code) %>%
-    dplyr::mutate(max = max(max, na.rm = TRUE)) %>%   # lake-species max across events
+    dplyr::mutate(max_age = max(max_age, na.rm = TRUE)) %>%   # lake-species max across events
     dplyr::ungroup()
 
 
@@ -110,8 +110,8 @@ link_releases <- function(){
 
   Sampled <- maxxages %>%
     dplyr::filter(!is.na(year)) %>%
-    dplyr::group_by(WBID, species_code, year, Sample_event, event_start_dt, max) %>%
-    dplyr::mutate(YearSeq = purrr::map(year, ~ seq((. - max), .))) %>%
+    dplyr::group_by(WBID, species_code, year, Sample_event, event_start_dt, max_age) %>%
+    dplyr::mutate(YearSeq = purrr::map(year, ~ seq((. - max_age), .))) %>%
     tidyr::unnest(YearSeq) %>%
     dplyr::ungroup() %>%
     dplyr::transmute(
@@ -159,7 +159,11 @@ link_releases <- function(){
       Sterile = all(grepl("3", ploidy)),
       wt_rel = round(sum(.data$size_g*.data$Quantity)/sum(.data$Quantity), 1),
       N_ha_rel = sum(Quantity_ha),
-      avg_rel_date = as.Date(mean(rel_Date)),
+      avg_rel_date = dplyr::if_else(
+        stringr::str_detect(sby_rel, ","),
+        as.Date(NA),
+        as.Date(mean(rel_Date))
+      ),
       .groups = "drop"
     ) %>%
     dplyr::mutate(Poss_Age = age)
@@ -200,7 +204,11 @@ link_releases <- function(){
         mean(N_ha_rel),
         NA_real_
       ),
-      avg_rel_date = as.Date(mean(avg_rel_date)),
+      avg_rel_date = dplyr::if_else(
+        stringr::str_detect(sby_rel, ","),
+        as.Date(NA),
+        as.Date(mean(rel_Date))
+      ),
       Poss_Age = { v <- sort(unique(age)); v <- v[!is.na(v)]; dplyr::na_if(stringr::str_c(v, collapse=","), "") },
       .groups = "drop"
     ) %>%

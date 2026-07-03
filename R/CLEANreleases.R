@@ -2,7 +2,7 @@
 #' Function only usable with connection to DataPond.
 #'
 #'
-#' This is a non-exported funciton to simplify code using the releases table to understand all possible stocked groups that could be in a lake at any given time.
+#' This is a non-exported function to simplify code using the releases table to understand all possible stocked groups that could be in a lake at any given time.
 #' In cases where clips are unique, then fields for age, strain, genotype are updated.
 #' Previous version of this function was within SPDT as SPDTreleases
 #' Ultimately, as upload filters and cleaning are improved in the main database, this function could become obsolete.

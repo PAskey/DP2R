@@ -45,7 +45,7 @@ link_releases <- function(){
 
   Releases$Season = metR::season(Releases$release_dt)
 
-  group_cols <- c("region_code", "locale_name","WBID", "area_ha" ,"species_code", "release_year","brood_year","age", "strain","ploidy","mark_code","lifestage_code", "Season", "trans_method_code")
+  group_cols <- c("region_code", "locale_name","WBID", "area_ha" ,"species_code", "release_year","brood_year","age", "strain","ploidy","mark_code","lifestage_code", "Season", "hatchery_code","trans_method_code")
 
   #First just group together cases of multiple relids for the same group type of fish to the same lake and time.Pretty slow function, so reduced to essential summary variables
 
@@ -233,10 +233,10 @@ link_releases <- function(){
   Stable_base <- Stable_base %>%
     dplyr::group_by(WBID) %>%
     dplyr::mutate(
-      gap = release_year - lag(release_year),
+      gap = release_year - dplyr::lag(release_year),
       Frequency = as.integer(stats::median(gap, na.rm = TRUE)),
-      qty_stable = abs(Total_Quantity - lag(Total_Quantity)) /
-        lag(Total_Quantity)<limit
+      qty_stable = abs(Total_Quantity - dplyr::lag(Total_Quantity)) /
+        dplyr::lag(Total_Quantity)<limit
     ) %>%
     dplyr::ungroup()
 
@@ -261,7 +261,7 @@ link_releases <- function(){
   Stable <- Stable %>%
     dplyr::group_by(WBID) %>%
     dplyr::mutate(
-      change = presc_key != lag(presc_key),
+      change = presc_key != dplyr::lag(presc_key),
       grp = cumsum(tidyr::replace_na(change, TRUE)),
       Stable_yrs = ave(sample_year, interaction(WBID, grp), FUN = seq_along)
     ) %>%

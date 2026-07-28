@@ -121,7 +121,7 @@ NR_lakes = NR_sum%>%
   dplyr::ungroup()
 
 #Now that established which lakes have a reasonable proportion of potential NR fish species, all non-clipped fish from those lake-species groups need to be treated as suspect.
-Biological = dplyr::left_join(vwIndividualFish,NR[,c("individual_fish_id","Poss_NR")], by = "individual_fish_id")%>%
+Biological = dplyr::left_join(vwIndividualFish,dplyr::distinct(NR[,c("individual_fish_id","Poss_NR")]), by = "individual_fish_id")%>%
   dplyr::mutate(Poss_NR = ifelse((is.na(mark_code)&
                 (interaction(WBID,species_code)%in%interaction(NR_lakes$WBID,NR_lakes$species_code))),1,Poss_NR),
                 Lk_yr = paste0(WBID,"_",year))
@@ -164,14 +164,14 @@ Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
 #If no, then leave the sby_rel possibilities as is (probably an ageing error or natural recruit or not stocked).
 #However, remove everything else as clearly a natural recruit or data/clip error
 Bioambig = Biopossible[!Biopossible$Stocked_age,]%>%
-  dplyr::mutate(across(c(Strain_rel:avg_rel_date), ~ dplyr::if_else(Stock_age_close==FALSE, NA, .x)))
+  dplyr::mutate(dplyr::across(dplyr::all_of(c("Strain_rel","Geno_rel","LS_rel","AF","Sterile","wt_rel","N_ha_rel","avg_rel_date")), ~ dplyr::if_else(Stock_age_close==FALSE, NA, .x)))
 
 
 #Any fish that does not match a stocking age and doesn't have a clip is Poss_NR
 Bioambig$Poss_NR[!is.na(Bioambig$age)&(is.na(Bioambig$mark_code)|Bioambig$mark_code=="NONE")]<-1
 
 #If yes, then re-link releases to biological using age or brood year as a linking variable.
-Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-c(sby_rel:Poss_Age))
+Bioaged = Biopossible[Biopossible$Stocked_age,]%>%dplyr::select(-dplyr::all_of(c("sby_rel","Strain_rel","Geno_rel","LS_rel","AF","Sterile","wt_rel","N_ha_rel","avg_rel_date","Poss_Age")))
 Bioaged <- dplyr::left_join(Bioaged,Link_rel[!is.na(Link_rel$age),]%>%dplyr::select(all_of(c("Sample_event","age",info_cols))),
                             by = c("species_code","Sample_event","mark_code","age"))
 

@@ -31,12 +31,16 @@ link_releases <- function(){
   #Step 1. Clean and standardize release data
 
   Releases <- vwLegacyRelease %>%
+    #Drop river-system releases: their WBID (leading "00000") is a drainage, not a unique lake,
+    #so it shares a WBID with connected lakes and would fan the linking grain via locale_name.
+    dplyr::filter(!grepl("^00000", WBID)) %>%
     dplyr::select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
     dplyr::left_join(
       DP2R::Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::select(WBID, area_ha),
       by = "WBID"
     ) %>%
     dplyr::mutate(
+      lifestage_code = dplyr::if_else(lifestage_code %in% c("CA1","CA2"), "CA", lifestage_code),
       age = sby2age(species_code, brood_year, release_year),
       quantity_ha = quantity/area_ha,
       biom_ha = biomass/area_ha
@@ -148,7 +152,7 @@ link_releases <- function(){
       "Sample_event",
       "sample_year",
       setdiff(group_cols,
-              c("release_year","brood_year","lifestage_code","Season","strain","ploidy", "trans_method_code"))
+              c("release_year","brood_year","lifestage_code","Season","strain","ploidy", "trans_method_code","hatchery_code"))
     ))) %>%
     dplyr::summarise(
       sby_rel    = dplyr::na_if(stringr::str_c(unique(na.omit(brood_year)), collapse=","), ""),
@@ -185,7 +189,7 @@ link_releases <- function(){
       "Sample_event",
       "sample_year",
       setdiff(group_cols,
-              c("release_year","brood_year","age","lifestage_code","Season","strain","ploidy", "trans_method_code"))
+              c("release_year","brood_year","age","lifestage_code","Season","strain","ploidy", "trans_method_code","hatchery_code"))
     ))) %>%
     dplyr::summarise(
       sby_rel    = split_collapse(sby_rel),

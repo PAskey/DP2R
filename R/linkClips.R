@@ -153,12 +153,16 @@ Link_rel_noage = Link_rel%>%
 #IS the obserevd age within +/-1 of the observed age = potentail ageing error
 Biopossible <- dplyr::left_join(Biological,Link_rel_noage,
                                 by = c("Sample_event","species_code","mark_code"))%>%
-  dplyr::rowwise()%>%
+  #Vectorized replacement for the old rowwise() + per-row strsplit block, which
+  #was the slowest step on the full biological table. Split Poss_Age once into a
+  #list column, then iterate in compiled code via purrr::map2_lgl. NA handling is
+  #identical to the original: age %in% NA -> FALSE, and any(abs(age - NA) <= 1) -> NA.
   dplyr::mutate(
-    Stocked_age = age%in%as.integer(strsplit(Poss_Age, ",")[[1]]),
-    Stock_age_close = any(abs(age - as.integer(strsplit(Poss_Age, ",")[[1]])) <= 1)
+    .poss_age = strsplit(Poss_Age, ",", fixed = TRUE),
+    Stocked_age = purrr::map2_lgl(age, .poss_age, ~ .x %in% as.integer(.y)),
+    Stock_age_close = purrr::map2_lgl(age, .poss_age, ~ any(abs(.x - as.integer(.y)) <= 1))
     )%>%
-  dplyr::ungroup()
+  dplyr::select(-.poss_age)
 
 
 #If no, then leave the sby_rel possibilities as is (probably an ageing error or natural recruit or not stocked).
@@ -182,12 +186,19 @@ rm(Clipsrel, NR, NR_lakes, Biopossible, Bioambig, Bioaged,  Link_rel_noage)
 
 #Replace un-observable values associated with stocking events and based on clips.
 replace_uni = function(var,uni, Poss_NR){
-  class = class(var)
-  var = as.character(var)
-  var = dplyr::case_when(!is.na(Poss_NR)|is.na(uni) ~ var,
-                         grepl(",",uni) ~ var,
+  target_class = class(var)[1]
+  var = dplyr::case_when(!is.na(Poss_NR)|is.na(uni) ~ as.character(var),
+                         grepl(",",uni) ~ as.character(var),
                          TRUE ~ uni)
-  class(var)<-class#in case replacing a numeric variable
+  #Restore the ORIGINAL storage type. The old code did `class(var) <- class`,
+  #which only set the class attribute and left numeric columns (e.g. sby_code)
+  #stored as text, so downstream arithmetic in sby2age() was acting on strings.
+  if (target_class %in% c("integer")) {
+    var = suppressWarnings(as.integer(var))
+  } else if (target_class %in% c("numeric","double")) {
+    var = suppressWarnings(as.numeric(var))
+  }
+  #character (and any other class) is returned unchanged
   return(var)
 }
 

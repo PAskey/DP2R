@@ -41,6 +41,12 @@ link_releases <- function(){
     ) %>%
     dplyr::mutate(
       lifestage_code = dplyr::if_else(lifestage_code %in% c("CA1","CA2"), "CA", lifestage_code),
+      #Fall spawners (EB, KO) spawn in fall of brood_year but the eggs do not hatch
+      #until the following year, so a genuine yearling is release_year - brood_year == 2.
+      lifestage_code = dplyr::if_else(
+        species_code %in% c("EB","KO") & lifestage_code == "YE" &
+          !dplyr::coalesce(release_year - brood_year == 2, FALSE),
+        "FR", lifestage_code),
       age = sby2age(species_code, brood_year, release_year),
       quantity_ha = quantity/area_ha,
       biom_ha = biomass/area_ha
@@ -73,7 +79,11 @@ link_releases <- function(){
   Sampled_events <- vwFishCollection %>%
     dplyr::group_by(WBID, year, Sample_event) %>%
     dplyr::summarise(
-      event_start_dt = min(as.Date(start_dt), na.rm = TRUE),
+      #Guard against events where every start_dt is NA: min(na.rm=TRUE) on an
+      #all-NA group warns and returns Inf. Return NA instead (quiet, and the
+      #downstream coalesce(rel_Date <= event_start_dt, TRUE) treats NA the same
+      #way it treated Inf, so linking behaviour is unchanged).
+      event_start_dt = if (all(is.na(start_dt))) as.Date(NA) else min(as.Date(start_dt), na.rm = TRUE),
       .groups = "drop"
     )
 

@@ -431,3 +431,71 @@ NULL
 #' length(remove_E_ids)
 "remove_E_ids"
 NULL
+
+# ----------------------------------------------------------------------
+#' Lakes reference table
+#'
+#' A reference table of British Columbia waterbodies (lakes and rivers) built by
+#' \code{data-raw/Create_Lakes.R} from the DataPond waterbody views. It combines
+#' physical attributes, access/amenity information, coordinates, provincial
+#' identifiers, estimated ice phenology, and a link to the online bathymetric map
+#' where one exists.
+#'
+#' @format A data frame with one row per waterbody and the following columns:
+#' \describe{
+#'   \item{waterbody_type}{Character. Waterbody type (e.g. lake or river).}
+#'   \item{region_code}{Character. Management region code.}
+#'   \item{WBID}{Character. Unique waterbody identifier (leading zeros preserved).}
+#'   \item{gazetted_name}{Character. Official gazetted waterbody name, if available.}
+#'   \item{alias}{Character. Alternative or informal lake name.}
+#'   \item{locale_name}{Character. Local or commonly used lake name, if available.}
+#'   \item{nearest_town}{Character. Nearest town to the waterbody.}
+#'   \item{area_ha}{Numeric. Surface area in hectares.}
+#'   \item{lake_volume_m3}{Numeric. Lake volume in cubic metres.}
+#'   \item{max_depth_m}{Numeric. Maximum depth in metres.}
+#'   \item{mean_depth_m}{Numeric. Mean depth in metres.}
+#'   \item{elevation_m}{Numeric. Surface elevation in metres (filled by \code{find_elevation()} where missing).}
+#'   \item{perimeter}{Numeric. Shoreline perimeter.}
+#'   \item{littoral_area_ha}{Numeric. Littoral (shallow) area in hectares.}
+#'   \item{littoral_area_percent}{Numeric. Littoral area as a percent of total area.}
+#'   \item{max_water_level}{Numeric. Maximum recorded water level.}
+#'   \item{num_outlets}{Integer. Number of outlet streams.}
+#'   \item{num_perm_inlets}{Integer. Number of permanent inlet streams.}
+#'   \item{4wd}{Access indicator. Whether four-wheel-drive access is required/available.}
+#'   \item{hike_in}{Access indicator. Whether the waterbody is hike-in only.}
+#'   \item{boat_launch}{Amenity indicator. Whether a boat launch is present.}
+#'   \item{fishing_pier}{Amenity indicator. Whether a fishing pier is present.}
+#'   \item{campsite}{Amenity indicator. Whether a campsite is present.}
+#'   \item{washroom}{Amenity indicator. Whether washroom facilities are present.}
+#'   \item{wheelchair}{Amenity indicator. Whether wheelchair-accessible facilities are present.}
+#'   \item{directions}{Character. Driving/access directions.}
+#'   \item{access_comment}{Character. Notes on access.}
+#'   \item{latitude}{Numeric. Access-point latitude.}
+#'   \item{longitude}{Numeric. Access-point longitude.}
+#'   \item{lake_latitude}{Numeric. Lake centroid latitude.}
+#'   \item{lake_longitude}{Numeric. Lake centroid longitude.}
+#'   \item{allow_release}{Indicator. Whether fish release is permitted.}
+#'   \item{comment}{Character. General comment.}
+#'   \item{waterbody_key}{Internal waterbody key.}
+#'   \item{watershed_group_code}{Character. Watershed group code.}
+#'   \item{waterbody_id}{Waterbody identifier in the provincial database.}
+#'   \item{locale_id}{Locale identifier.}
+#'   \item{feature_code}{Character. Provincial feature code.}
+#'   \item{watershed_code}{Character. Provincial watershed code.}
+#'   \item{ffsbc_waterbody_id}{FFSBC internal waterbody identifier.}
+#'   \item{active}{Logical. Whether the waterbody record is active.}
+#'   \item{ice_on_day}{Integer. Estimated typical ice-on day of year (from \code{estimate_lake_ice()}).}
+#'   \item{ice_off_day}{Integer. Estimated typical ice-off day of year (from \code{estimate_lake_ice()}).}
+#'   \item{bathymetry_url}{Character. URL to the online bathymetric map (BC FIDQ), where available.}
+#' }
+#'
+#' @usage data(Lakes)
+#'
+#' @source Built by \code{data-raw/Create_Lakes.R} from DataPond waterbody views;
+#'   bathymetric map links from \code{data-raw/bathymetry_links.csv} (BC FIDQ).
+#'
+#' @examples
+#' data(Lakes)
+#' head(Lakes)
+"Lakes"
+NULL

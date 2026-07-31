@@ -34,4 +34,12 @@ idx <- which(!is.na(Lakes$elevation_m))
 Lakes <- DP2R::estimate_lake_ice(Lakes[idx, ])
 
 
+#Add links to online bathymetric maps (BC FIDQ) by WBID.
+#bathymetry_links.csv has one url per WBID (WBIDs are unique), so this left_join
+#adds a `bathymetry_url` column without duplicating any Lakes rows. colClasses
+#keeps WBID as character so leading zeros are preserved for the join.
+bathymetry_links <- read.csv("data-raw/bathymetry_links.csv", colClasses = "character")
+Lakes <- dplyr::left_join(Lakes, bathymetry_links, by = "WBID")
+
+
 usethis::use_data(Lakes, overwrite = TRUE)

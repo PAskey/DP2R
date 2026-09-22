@@ -52,13 +52,7 @@ Clipsrel = Link_rel%>%
 #Add "NONE" to aged (or unaged?) fish where there are multiple clips at large but this group is not clipped (so unique)
 #Unaged releases can be a unique product over many years.
 #Also inconsistent use of NA and "NONE" in database, so need to duplicate release rows with NA as NONE to cover both
-#Old attempt excluded any cases where Strain, Genod or LIfestage was not unique, but the other 2 might be, so updated.
-#Link_none = Link_rel%>%
-#  dplyr::mutate(mark_code = ifelse((is.na(mark_code)&
-#                                      !is.na(sby_rel)&
-#                                      !dplyr::if_any(c(Strain_rel, Geno_rel, LS_rel),
-#                                              ~ stringr::str_detect(.x, ","))&
-#                                      (interaction(WBID,sample_year,species_code)%in%interaction(Clipsrel$WBID, Clipsrel$sample_year,Clipsrel$species_code))),"NONE",mark_code))
+#Old attempt excluded any cases where Strain, Geno or Lifestage was not unique, but the other 2 might be, so updated.
 
 Link_none = Link_rel%>%
   dplyr::filter(is.na(mark_code))%>%
@@ -76,7 +70,7 @@ vwIndividualFish = vwIndividualFish%>%
 vwIndividualFish <<- vwIndividualFish#Persist cleaned mark_code back to the global copy, consistent with the other tables updated below
 
 
-##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT S NA?
+##??POTENTIALLY ADD IN SECTION TO ADD NONE TO INDIVS IF LEFT AS NA?
 
 
 #########################
@@ -127,7 +121,7 @@ Biological = dplyr::left_join(vwIndividualFish,dplyr::distinct(NR[,c("individual
                 Lk_yr = paste0(WBID,"_",year))
 
 
-##Now link stocknig prescriptions to captured fish, first link everything without using age
+##Now link stocking prescriptions to captured fish, first link everything without using age
 #Select columns
 info_cols = c(
   "species_code",
@@ -223,22 +217,91 @@ Biological <- Biological%>%
   ))
 
 
-#Summarize lake species composition information
-Cap_Spp = vwCollectCount%>%
-  dplyr::mutate(year = lubridate::year(as.Date(end_dt)))%>%
-  dplyr::select( WBID, year, species_code)%>%
-  unique()
+#Summarize lake species presence from ALL available data sources. Each source
+#becomes per-observation (WBID, species_code, year) rows tagged with:
+#  assess -> TRUE if the species was actually detected (collection counts,
+#            individual fish, FISS); FALSE for stocking releases only.
+#  source -> "DataPond" for any DataPond table (captures, individual fish,
+#            releases); "FISS" for FISS observations.
+#Then reduce to one row per WBID x species:
+#  first_obs   = earliest year across ANY source (species-specific)
+#  last_obs    = latest   year across ANY source (species-specific)
+#  last_source = "FISS" if that latest year came only from FISS, else "DataPond"
+#  last_assess = latest ASSESSMENT year for the whole LAKE (max non-release year
+#                across ALL species in the WBID) -- same value for every species
+#                in a lake. Comparing a species' last_obs to the lake's
+#                last_assess shows whether it went undetected in later sampling.
 
-Ind_Spp = vwIndividualFish%>%dplyr::select(WBID, year, species_code)%>%unique()
+#1. Fish in collection counts (observation year from end_dt)
+Cap_Spp = vwCollectCount %>%
+  dplyr::transmute(WBID, species_code,
+                   year = as.integer(lubridate::year(as.Date(end_dt))),
+                   assess = TRUE, source = "DataPond")
 
-Lake_Spp = dplyr::full_join(Cap_Spp,Ind_Spp)
+#2. Individual fish records (year already present)
+Ind_Spp = vwIndividualFish %>%
+  dplyr::transmute(WBID, species_code, year = as.integer(year),
+                   assess = TRUE, source = "DataPond")
 
-Lake_Spp = dplyr::left_join(Lake_Spp, DP2R::Species, by = "species_code")%>%
-  dplyr::select(WBID:stocked_species, subfamily)%>%
-  dplyr::group_by(WBID, year)%>%
-  dplyr::mutate(All_spp = paste(sort(unique(species_code)), collapse = ','),
-                Spp_class = paste(sort(unique(subfamily)), collapse = ','),
-                Non_salm = paste(sort(unique(species_code[.data$subfamily!="Salmoninae"])), collapse = ','))%>%dplyr::ungroup()
+#3. Stocking releases (release year) -- DataPond, but NOT an assessment.
+Rel_Spp = Releases %>%
+  dplyr::transmute(WBID, species_code, year = as.integer(release_year),
+                   assess = FALSE, source = "DataPond")
+
+#4. FISS known observations (raw per-observation table: WBID, species_code, year,
+#activity, agency_name) -- assessment observations. Guarded so linkClips still
+#runs if FISS_Spp is unavailable, but WARN rather than silently skip (usual cause:
+#a stale DP2R namespace -- data/FISS_Spp.rda exists but the package was not
+#rebuilt/reloaded).
+FISS_rows = tryCatch(
+  DP2R::FISS_Spp %>% dplyr::transmute(WBID, species_code, year = as.integer(year),
+                                      assess = TRUE, source = "FISS"),
+  error = function(e) {
+    warning("linkClips(): FISS_Spp not found (", conditionMessage(e),
+            "). Lake_Spp built WITHOUT FISS. If data/FISS_Spp.rda exists, rebuild/",
+            "reload DP2R (devtools::load_all() or Install & Restart) so DP2R::FISS_Spp ",
+            "is in the namespace, as DP2R::Species is.", call. = FALSE)
+    Cap_Spp[0, ]
+  }
+)
+
+all_rows = dplyr::bind_rows(Cap_Spp, Ind_Spp, Rel_Spp, FISS_rows) %>%
+  dplyr::filter(!is.na(WBID), !is.na(species_code))
+
+#Lake-level last assessment year: latest non-release (assessment) year anywhere
+#in the lake, across all species. One value per WBID, joined onto every species.
+lake_assess = all_rows %>%
+  dplyr::filter(assess, !is.na(year)) %>%
+  dplyr::group_by(WBID) %>%
+  dplyr::summarise(last_assess = as.integer(max(year)), .groups = "drop")
+
+#Species-level summary. dp_last / fiss_last are helpers to decide last_source:
+#FISS only "wins" the latest record if it is strictly later than any DataPond year
+#(so a tie, or any DataPond record at the latest year, reads as DataPond).
+Lake_Spp = all_rows %>%
+  dplyr::group_by(WBID, species_code) %>%
+  dplyr::summarise(
+    first_obs = suppressWarnings(min(year, na.rm = TRUE)),
+    last_obs  = suppressWarnings(max(year, na.rm = TRUE)),
+    dp_last   = suppressWarnings(max(year[source == "DataPond"], na.rm = TRUE)),
+    fiss_last = suppressWarnings(max(year[source == "FISS"],     na.rm = TRUE)),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    first_obs   = dplyr::if_else(is.finite(first_obs), as.integer(first_obs), NA_integer_),
+    last_obs    = dplyr::if_else(is.finite(last_obs),  as.integer(last_obs),  NA_integer_),
+    last_source = dplyr::if_else(
+      is.finite(fiss_last) & (!is.finite(dp_last) | fiss_last > dp_last),
+      "FISS", "DataPond"
+    )
+  ) %>%
+  dplyr::select(-dp_last, -fiss_last) %>%
+  dplyr::left_join(lake_assess, by = "WBID")
+
+#Attach species taxonomy (subfamily etc.) as before; downstream code (e.g.
+#SPDTdata()) relies on WBID, species_code and subfamily being present.
+Lake_Spp = dplyr::left_join(Lake_Spp, DP2R::Species, by = "species_code") %>%
+  dplyr::relocate(first_obs, last_obs, last_assess, last_source, .after = species_code)
 
 Biological <- DP2R::add_selectivity(Biological)%>%
                 dplyr::mutate(NetX = 1/select)
@@ -251,8 +314,7 @@ vwCollectCount<<- vwCollectCount %>%
   dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
   dplyr::relocate(locale_name, .after = WBID)
 
-vwWaterbodyLake<<- vwWaterbodyLake %>%
-  dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
+vwWaterbody<<- vwWaterbody %>%
   dplyr::relocate(locale_name, .after = WBID)
 
 

@@ -6,8 +6,8 @@
 \usage{
 find_elevation(
   x,
-  lon_col = "longitude",
-  lat_col = "latitude",
+  lon_col = "lake_long",
+  lat_col = "lake_lat",
   elevation_col = "elevation_m",
   prj = "EPSG:4326",
   src = "aws",
@@ -19,9 +19,9 @@ find_elevation(
 \arguments{
 \item{x}{A data frame containing longitude and latitude columns.}
 
-\item{lon_col}{Name of the longitude column. Default is `"longitude"`.}
+\item{lon_col}{Name of the longitude column. Default is `"lake_long"`.}
 
-\item{lat_col}{Name of the latitude column. Default is `"latitude"`.}
+\item{lat_col}{Name of the latitude column. Default is `"lake_lat"`.}
 
 \item{elevation_col}{Name of the output elevation column.
 Default is `"elevation_m"`.}

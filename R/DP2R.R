@@ -25,7 +25,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbodyLake","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE) {
@@ -227,8 +227,8 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
     data
   }
 
-   #Function to aggregate vwWaterbodyLake when multi records per lake and rename if alias is used
-  aggregate_vwWaterbodyLake <- function(data) {
+   #Function to aggregate vwWaterbody when multi records per lake and rename if alias is used
+  aggregate_vwWaterbody <- function(data) {
     data %>%
       dplyr::group_by(WBID) %>%
       dplyr::summarise(across(everything(), mean_or_concat), .groups = 'drop')
@@ -261,9 +261,9 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
     if (!is.null(ret) && is.data.frame(ret) && !as.raw) {
       ret <- rename_columns_if_present(ret)
       ret <- remove_na_wbid(ret)  # Remove rows with NA in WBID
-      # If the current table is vwWaterbodyLake, apply aggregation
-      if (tb == "vwWaterbodyLake") {
-        ret <- aggregate_vwWaterbodyLake(ret)
+      # If the current table is vwWaterbody, apply aggregation
+      if (tb == "vwWaterbody") {
+        ret <- aggregate_vwWaterbody(ret)
 
       }
       # ---------------------------------------------------------

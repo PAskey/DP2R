@@ -28,7 +28,7 @@ Effort2R <- function() {
   if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object.")}
 
   #In future bring in vwEffort as well
-  #DP2R::DP2R(Tables = c("vwWaterbodyLake"))
+  #DP2R::DP2R(Tables = c("vwWaterbody"))
 
   # Currently Edata_dt is already a data.table object from EffortCLean() below
   #In future, once cleaning section can be removed, but add following:
@@ -110,7 +110,7 @@ Effort2R <- function() {
 
   # Convert back to data.frame if necessary
   Edata <- as.data.frame(Edata_dt)
-  #Lakes <- vwWaterbodyLake[vwWaterbodyLake$WBID %in% Edata_dt$WBID,]
+  #Lakes <- vwWaterbody[vwWaterbody$WBID %in% Edata_dt$WBID,]
 
 
 

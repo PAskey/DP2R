@@ -6,7 +6,7 @@
 \usage{
 estimate_lake_ice(
   x,
-  lat_col = "latitude",
+  lat_col = "lake_lat",
   elevation_col = "elevation_m",
   area_col = "area_ha",
   region_col = "region_code",
@@ -18,7 +18,7 @@ estimate_lake_ice(
 \arguments{
 \item{x}{A data frame containing lake attributes.}
 
-\item{lat_col}{Name of the latitude column. Default is `"latitude"`.}
+\item{lat_col}{Name of the latitude column. Default is `"lake_lat"`.}
 
 \item{elevation_col}{Name of the elevation column in metres.
 Default is `"elevation_m"`.}

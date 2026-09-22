@@ -35,9 +35,9 @@
 #'
 #' @param df A data frame containing latitude and longitude columns.
 #' @param lat_col Character. Name of the latitude column. Default is
-#'   \code{"latitude"}.
+#'   \code{"lake_lat"}.
 #' @param lon_col Character. Name of the longitude column. Default is
-#'   \code{"longitude"}.
+#'   \code{"lake_long"}.
 #' @param threshold Numeric. Temperature threshold in degrees Celsius.
 #' @param days_metric Character. Type of metric to calculate. Must be one of:
 #'   \itemize{
@@ -73,8 +73,8 @@
 #' @importFrom dplyr %>% mutate select left_join all_of row_number bind_cols
 #' @export
 get_temp_days_metric <- function(df,
-                                 lat_col = "latitude",
-                                 lon_col = "longitude",
+                                 lat_col = "lake_lat",
+                                 lon_col = "lake_long",
                                  threshold = 10,
                                  days_metric = c("tally", "sum"),
                                  res = 2.5,

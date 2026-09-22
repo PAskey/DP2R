@@ -1,7 +1,7 @@
 #A data set to consolidate gazetted names and alias into a single prefferred name for each lake (without the word "lake")
 
-DP2R::DP2R(Tables = "vwWaterbodyLake")
-wb_alias <- vwWaterbodyLake%>%
+DP2R::DP2R(Tables = "vwWaterbody")
+wb_alias <- vwWaterbody%>%
   dplyr::transmute(WBID,
                    alias)
 

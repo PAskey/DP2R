@@ -34,10 +34,10 @@ A data frame with one row per waterbody and the following columns:
   \item{wheelchair}{Amenity indicator. Whether wheelchair-accessible facilities are present.}
   \item{directions}{Character. Driving/access directions.}
   \item{access_comment}{Character. Notes on access.}
-  \item{latitude}{Numeric. Access-point latitude.}
-  \item{longitude}{Numeric. Access-point longitude.}
-  \item{lake_latitude}{Numeric. Lake centroid latitude.}
-  \item{lake_longitude}{Numeric. Lake centroid longitude.}
+  \item{access_lat}{Numeric. Latitude of the shoreline access point (missing for most lakes).}
+  \item{access_long}{Numeric. Longitude of the shoreline access point (missing for most lakes).}
+  \item{lake_lat}{Numeric. Lake latitude (outlet or centroid).}
+  \item{lake_long}{Numeric. Lake longitude (outlet or centroid).}
   \item{allow_release}{Indicator. Whether fish release is permitted.}
   \item{comment}{Character. General comment.}
   \item{waterbody_key}{Internal waterbody key.}

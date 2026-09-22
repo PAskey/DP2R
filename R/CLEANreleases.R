@@ -84,7 +84,7 @@ CLEANreleases <- function(){
   #Add in some per ha calculations. Faster to keep these separate from summarize
   ##THIS TABLE IS ADDED TO ENVIRO_______________________________________________
   Releases = Releases%>%
-    dplyr::inner_join(dplyr::select(vwWaterbodyLake,WBID, area_ha),by = "WBID")%>%
+    dplyr::inner_join(dplyr::select(vwWaterbody,WBID, area_ha),by = "WBID")%>%
     dplyr::mutate(SAR_cat = SAR_cat(g_size),
                   Quantity_ha = round(Quantity/area_ha,0),
                   Biom_ha = round(Biomass_kg/area_ha,2))%>%

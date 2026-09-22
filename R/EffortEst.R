@@ -28,7 +28,7 @@ EffortEst <- function(data = NULL, month_span = c(5:10), update.model = FALSE, m
     data = Edata
   }
   data = data[data$month%in%month_span,]%>%droplevels()
-  #Lakes <- DP2R::DP2R(Tables = "vwWaterbodyLake")$vwWaterbodyLake
+  #Lakes <- DP2R::DP2R(Tables = "vwWaterbody")$vwWaterbody
 
 
   if (update.model) {

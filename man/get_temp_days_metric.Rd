@@ -6,8 +6,8 @@
 \usage{
 get_temp_days_metric(
   df,
-  lat_col = "latitude",
-  lon_col = "longitude",
+  lat_col = "lake_lat",
+  lon_col = "lake_long",
   threshold = 10,
   days_metric = c("tally", "sum"),
   res = 2.5,
@@ -19,10 +19,10 @@ get_temp_days_metric(
 \item{df}{A data frame containing latitude and longitude columns.}
 
 \item{lat_col}{Character. Name of the latitude column. Default is
-\code{"latitude"}.}
+\code{"lake_lat"}.}
 
 \item{lon_col}{Character. Name of the longitude column. Default is
-\code{"longitude"}.}
+\code{"lake_long"}.}
 
 \item{threshold}{Numeric. Temperature threshold in degrees Celsius.}
 

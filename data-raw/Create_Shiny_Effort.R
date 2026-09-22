@@ -7,7 +7,9 @@ EffortEst(update.model = TRUE)
 shinydata = EffortEsts
 
 shinydata = dplyr::left_join(shinydata,
-                             Lakes[,c("WBID","lake_latitude","lake_longitude")],
+                             #vwWaterbody names are lake_lat/lake_long; keep the lake_latitude/lake_longitude
+                             #names in shinydata/lakesum so the Shiny app is unaffected
+                             dplyr::select(Lakes, WBID, lake_latitude = lake_lat, lake_longitude = lake_long),
                              by = "WBID")
 
 #Lake by lake summary of effort data

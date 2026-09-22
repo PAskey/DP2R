@@ -82,7 +82,7 @@ wmu_from_watershed_code <- function(watershed_code, wmu = NULL, watersheds = NUL
 # ---- Data preparation ----
 fwa_lakes <- get_fwa_lakes()
 bc_wmu <- get_wmu()
-DP2R::DP2R(Tables = c("vwWaterbodyLake", "vwWaterbody"))
+DP2R::DP2R(Tables = "vwWaterbody")
 #Waterbody = Waterbody%>%filter(waterbody_type == "LK")
 
 # Reduce down to lakes in DataPond and select minimal useful columns
@@ -133,7 +133,7 @@ used_pairs <- mru1 %>%
   distinct(name_key, region_code, WBID)
 
 # 2) Candidate WBIDs from vwWaterbody (by same keys)
-candidates <- vwWaterbodyLake %>%
+candidates <- vwWaterbody %>%
   transmute(name_key = normalize_key(gazetted_name),
             region_code   = region_code,
             WBID     = as.character(WBID)) %>%

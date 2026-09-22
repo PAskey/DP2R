@@ -5,8 +5,8 @@
 #' coordinates are left as `NA`.
 #'
 #' @param x A data frame containing longitude and latitude columns.
-#' @param lon_col Name of the longitude column. Default is `"longitude"`.
-#' @param lat_col Name of the latitude column. Default is `"latitude"`.
+#' @param lon_col Name of the longitude column. Default is `"lake_long"`.
+#' @param lat_col Name of the latitude column. Default is `"lake_lat"`.
 #' @param elevation_col Name of the output elevation column.
 #'   Default is `"elevation_m"`.
 #' @param prj Coordinate reference system passed to
@@ -41,8 +41,8 @@
 #'
 #' @export
 find_elevation <- function(x,
-                           lon_col = "longitude",
-                           lat_col = "latitude",
+                           lon_col = "lake_long",
+                           lat_col = "lake_lat",
                            elevation_col = "elevation_m",
                            prj = "EPSG:4326",
                            src = "aws",

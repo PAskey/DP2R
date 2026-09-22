@@ -15,7 +15,7 @@
 #' for both output columns.
 #'
 #' @param x A data frame containing lake attributes.
-#' @param lat_col Name of the latitude column. Default is `"latitude"`.
+#' @param lat_col Name of the latitude column. Default is `"lake_lat"`.
 #' @param elevation_col Name of the elevation column in metres.
 #'   Default is `"elevation_m"`.
 #' @param area_col Name of the lake area column in hectares.
@@ -53,7 +53,7 @@
 #'
 #' @export
 estimate_lake_ice <- function(x,
-                              lat_col = "latitude",
+                              lat_col = "lake_lat",
                               elevation_col = "elevation_m",
                               area_col = "area_ha",
                               region_col = "region_code",

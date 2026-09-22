@@ -49,11 +49,11 @@ link_releases <- function(){
         "FR", lifestage_code),
       age = sby2age(species_code, brood_year, release_year),
       quantity_ha = quantity/area_ha,
-      biom_ha = biomass/area_ha
+      biom_ha = biomass_kg/area_ha
     )
 
 
-  Releases$Season = metR::season(Releases$release_dt)
+  Releases$Season = metR::season(Releases$release_date)
 
   group_cols <- c("region_code", "locale_name","WBID", "area_ha" ,"species_code", "release_year","brood_year","age", "strain","ploidy","mark_code","lifestage_code", "Season", "hatchery_code","trans_method_code")
 
@@ -63,12 +63,12 @@ link_releases <- function(){
     #group by Spr or Fall in case 2 trips on different days of same fish
     dplyr::group_by(!!!rlang::syms(c(group_cols)))%>%
     dplyr::summarise(
-      rel_Date = mean(as.Date(.data$release_dt,
+      rel_Date = mean(as.Date(.data$release_date,
                               format = "%Y-%m-%d"), na.rm = TRUE),
       size_g = round(sum(quantity*size_g)/sum(quantity),1),
       SAR_cat = SAR_cat(size_g),
       Quantity = sum(quantity),
-      Biomass_kg = sum(biomass),
+      Biomass_kg = sum(biomass_kg),
       Quantity_ha = sum(quantity_ha, na.rm = T),
       Biom_ha = sum(biom_ha, na.rm = T),
       .groups = "drop"

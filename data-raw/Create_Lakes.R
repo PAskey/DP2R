@@ -1,9 +1,8 @@
 #Create a stored Lakes file to quickly call into dplyr functions
-
 DP2R::DP2R(Tables = c("vwWaterbody"))
 
 #vwWaterbody includes rivers
-Lakes = vwWaterbody%>%
+Lakes = vwWaterbody|>
   dplyr::filter(!is.na(WBID), waterbody_type != "RV")
 
 

@@ -1,3 +1,9 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^\.Rhistory$
+^\.gitignore$
+^Ice_analysis\.R$
+^test_ExpCam\.R$
+^date_flip_summary\.csv$
+^stripped_model\.qs2$

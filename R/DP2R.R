@@ -25,7 +25,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE) {
@@ -207,6 +207,7 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwLegacyRelease","vwIndividualFis
       . == "surface_area_ha" ~ "area_ha",
       . == "accepted_age" ~ "age",
       . == "accepted_brood_year" ~ "brood_year",
+      . == "ave_size_g" ~ "size_g",#vwRelease (was size_g in vwLegacyRelease)
       TRUE ~ .
     ))
 

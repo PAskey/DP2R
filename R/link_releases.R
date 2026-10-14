@@ -26,19 +26,22 @@
 link_releases <- function(){
 
   #Check data has been loaded.
-  if(!exists("vwLegacyRelease")|!exists("vwIndividualFish")|!exists("vwFishCollection")){DP2R()}
+  if(!exists("vwRelease")|!exists("vwIndividualFish")|!exists("vwFishCollection")){DP2R()}
 
   #Step 1. Clean and standardize release data
 
-  Releases <- vwLegacyRelease %>%
+  Releases <- vwRelease %>%
     #Drop river-system releases: their WBID (leading "00000") is a drainage, not a unique lake,
     #so it shares a WBID with connected lakes and would fan the linking grain via locale_name.
     dplyr::filter(!grepl("^00000", WBID)) %>%
-    dplyr::select(-area_ha) %>%#vwLegacyRelease is missing lots of surface area values
+    #Use DP2R::Lakes surface area first (most complete), falling back to the area in vwRelease
+    dplyr::rename(rel_area_ha = area_ha) %>%
     dplyr::left_join(
-      DP2R::Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::select(WBID, area_ha),
+      DP2R::Lakes %>% dplyr::filter(!is.na(area_ha))%>%dplyr::distinct(WBID, .keep_all = TRUE)%>%dplyr::select(WBID, area_ha),
       by = "WBID"
     ) %>%
+    dplyr::mutate(area_ha = dplyr::coalesce(area_ha, rel_area_ha)) %>%
+    dplyr::select(-rel_area_ha) %>%
     dplyr::mutate(
       lifestage_code = dplyr::if_else(lifestage_code %in% c("CA1","CA2"), "CA", lifestage_code),
       #Fall spawners (EB, KO) spawn in fall of brood_year but the eggs do not hatch
@@ -53,7 +56,7 @@ link_releases <- function(){
     )
 
 
-  Releases$Season = metR::season(Releases$release_date)
+  Releases$Season = metR::season(as.Date(Releases$release_date))
 
   group_cols <- c("region_code", "locale_name","WBID", "area_ha" ,"species_code", "release_year","brood_year","age", "strain","ploidy","mark_code","lifestage_code", "Season", "hatchery_code","trans_method_code")
 

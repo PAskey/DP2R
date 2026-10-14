@@ -55,9 +55,6 @@ stock_hist <- function(WBID, min_year = NULL, max_year = NULL,
          ". Reload it with DP2R('vwRelease') (not as.raw = TRUE).")
   }
 
-  # Guard against duplicate export rows in the view
-  if ("export_id" %in% names(rel)) rel <- dplyr::distinct(rel, .data$export_id, .keep_all = TRUE)
-
   # RB strain colours are set from every RB strain in vwRelease (not just the
   # lakes plotted), so a strain keeps the same colour from one plot to the next.
   all_rb_strains <- sort(unique(stats::na.omit(rel$strain[rel$species_code == "RB"])))

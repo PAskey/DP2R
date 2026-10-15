@@ -5,6 +5,25 @@ DP2R::DP2R(Tables = c("vwWaterbody"))
 Lakes = vwWaterbody|>
   dplyr::filter(!is.na(WBID), waterbody_type != "RV")
 
+#Check: a lake can have several vwWaterbody rows (e.g. one per access point) and
+#DP2R() averages them. vwWaterbody only carries current lake dimensions, so every
+#row for a lake should have the same area. Flag any lake where they differ, since
+#then the average would not match the area used in vwRelease.
+wb_raw <- new.env()
+DP2R::DP2R(Tables = "vwWaterbody", as.raw = TRUE, envir = wb_raw)
+area_conflict <- wb_raw$vwWaterbody |>
+  dplyr::filter(!is.na(waterbody_identifier), !is.na(surface_area_ha)) |>
+  dplyr::group_by(WBID = waterbody_identifier) |>
+  dplyr::summarise(n_area_values = dplyr::n_distinct(surface_area_ha),
+                   area_values   = toString(sort(unique(round(surface_area_ha, 2)))),
+                   .groups = "drop") |>
+  dplyr::filter(n_area_values > 1)
+if (nrow(area_conflict) > 0) {
+  warning(nrow(area_conflict), " lake(s) have different areas across vwWaterbody rows; ",
+          "Lakes uses their mean. See `area_conflict`.", call. = FALSE)
+}
+rm(wb_raw)
+
 
 cols_order =
   c("waterbody_type", "region_code", "WBID", "gazetted_name", "locale_name", "nearest_town",

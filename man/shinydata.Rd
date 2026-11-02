@@ -34,7 +34,7 @@ Generated internally for the DP2R package.
 data(shinydata)
 }
 \description{
-A data frame summarizing effort estimates for lakes for each year/fishing season assessed, which underlies the Shiny application used by provincial biologists.
+A data frame of DataPond count-based effort estimates (CAM, AIR, GRD) for lakes for each year/fishing season assessed, from \code{EffortEst()}. For all methods including questionnaires and surveys, use \code{Effort_all}.
 Open water fishing season is standardized from May 1st to October 31st.
 }
 \examples{

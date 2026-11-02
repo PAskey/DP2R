@@ -10,6 +10,7 @@
 # Tie-break when multiple candidate model species match:
 #   - choose the candidate species_code that occurs most frequently in Biological
 #   - if tied, choose alphabetical species_code (deterministic)
+library(dplyr)#needed for %>% and dplyr verbs when run on its own or by DP2Rdata_refresh()
 build_approx_select_spp <- function(species_codes) {
 
   # Require Biological in calling environment (annual build workflow)

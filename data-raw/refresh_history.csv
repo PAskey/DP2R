@@ -1,0 +1,12 @@
+"time","step","action","reason","minutes"
+"2026-10-29 09:18:23","all","baseline","current stored data marked up to date",0
+"2026-11-02 21:29:40","Lakes","built","Lakes: 16694 -> 16694 rows; 0 lakes added, 0 removed, 62 changed",0.5
+"2026-11-02 21:30:18","lake_names","failed","could not find function ""%>%""",0.5
+"2026-11-02 21:30:19","Effort_external","built","Effort_external: 8445 -> 8445 rows",0
+"2026-11-02 21:30:27","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
+"2026-11-02 21:34:27","gillnet_selectivity","built","best_models: 11 -> 11 rows, approx_select_spp: 49 -> 50 rows, sel_lookup: 605 -> 605 rows, sel_classes: 826 -> 826 rows, sel_lookup_event: 1728 -> 1785 rows",3.9
+"2026-11-02 21:41:34","Species","built","Species: 158 -> 158 rows",0
+"2026-11-02 21:41:50","lake_names","failed","[38;5;232m[36mℹ[38;5;232m In argument: `alias`.[39m
+[1mCaused by error:[22m
+[38;5;232m[33m![38;5;232m `alias` must be a vector, not a function.[39m",0.2
+"2026-11-02 21:58:46","lake_names","built","lake_names: 16693 -> 16750 rows",0.2

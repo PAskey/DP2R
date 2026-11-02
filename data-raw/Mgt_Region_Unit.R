@@ -216,6 +216,6 @@ Mgt_Region_Unit$region_code <-tolower(Mgt_Region_Unit$region_code)
 end <- Sys.time()
 runtime = end-start
 
-path = "C:/Users/paul.askey/OneDrive - Freshwater Fisheries Society of B.C/FFSBC work docs/Git_projects/DP2R/data"
+path = "data"#relative to the DP2R project folder
 save(Mgt_Region_Unit, file = file.path(path, "Mgt_Region_Unit.rda"))
 

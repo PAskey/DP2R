@@ -39,6 +39,10 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
                          uid = uid,
                          pwd = pwd")}
 
+  #Once per session: tiny DataPond queries to remind if stored package data are out of date
+  #(see DP2Rdata_refresh()). Silent on any problem; turn off with options(DP2R.refresh_check = FALSE)
+  refresh_reminder(conn)
+
 
   # Ensure vwPaAssessEvent is included if dependent tables (neededin assess_event_name) are requested
   #Can remove this if get a consistent assess_event_name or asses_event_id across all views.

@@ -97,7 +97,7 @@ NULL
 # ----------------------------------------------------------------------
 #' shinydata Dataset
 #'
-#' A data frame summarizing effort estimates for lakes for each year/fishing season assessed, which underlies the Shiny application used by provincial biologists.
+#' A data frame of DataPond count-based effort estimates (CAM, AIR, GRD) for lakes for each year/fishing season assessed, from \code{EffortEst()}. For all methods including questionnaires and surveys, use \code{Effort_all}.
 #' Open water fishing season is standardized from May 1st to October 31st.
 #'
 #' @format A data frame with 18 columns:
@@ -130,37 +130,6 @@ NULL
 #'
 #' @docType data
 #' @name shinydata
-NULL
-
-# ----------------------------------------------------------------------
-#' lakesum Dataset
-#'
-#' A data frame summarizing effort estimates for lakes over all years assessed, which underlies the Shiny application used by provincial biologists.
-#'
-#' @format A data frame with 10 columns:
-#' \describe{
-#'   \item{region_code}{managment region_code, character}
-#'   \item{WBID}{Waterbody Identifie, character}
-#'   \item{gazetted_name}{Gazetted waterbody name}
-#'   \item{N_years}{the number of different calendar years with effort estimates, integer}
-#'   \item{min_year}{the earliest year with effort estimates, integer}
-#'   \item{max_year}{the nmost recent year effort estimates, integer}
-#'   \item{Methods}{A character string describing the different methods used to count effort CAM, AIR, GRD}
-#'   \item{mean_AD}{The average estimated total angler days across years assessed, numeric}
-#'   \item{marker_size}{A value equal to mean_AD for plotting}
-#'   \item{AD_percentile}{The percentile rank, province wide, of the average anglers days estiamted for a given lake.}
-#'   \item{lake_latitude}{coordinate of lake, numeric}
-#'   \item{lake_longitude}{coordinate of lake, numeric}
-#' }
-#' @usage data(lakesum)
-#' @source Generated internally for the DP2R package.
-#'
-#' @examples
-#' data(lakesum)
-#' head(lakesum)
-#'
-#' @docType data
-#' @name lakesum
 NULL
 
 # ----------------------------------------------------------------------

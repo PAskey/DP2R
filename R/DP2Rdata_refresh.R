@@ -38,6 +38,9 @@
 #'   Datasets that depend on them are rebuilt too.
 #' @param baseline Logical. Record the current stored data as up to date without
 #'   rebuilding anything. Use once to start the log, or after rebuilding by hand.
+#' @param bump_version Logical (default TRUE). After a run that rebuilt anything, add 0.0.1
+#'   to the package version in DESCRIPTION (e.g. 1.2.0 -> 1.2.1), so the installed version
+#'   shows which data release you have.
 #' @param repo Path to the DP2R source folder (default: working directory).
 #' @param .query For testing only: a function(sql) returning a data.frame, used instead of
 #'   querying \code{conn}.
@@ -50,7 +53,7 @@
 #' DP2Rdata_refresh(baseline = TRUE)       #first use: mark current data as up to date
 
 DP2Rdata_refresh <- function(run = FALSE, include = NULL, force = NULL, baseline = FALSE,
-                             repo = ".", .query = NULL) {
+                             bump_version = TRUE, repo = ".", .query = NULL) {
 
   repo <- normalizePath(repo, winslash = "/", mustWork = TRUE)
   if (!file.exists(file.path(repo, "data-raw", "Create_Lakes.R")) ||
@@ -265,7 +268,17 @@ DP2Rdata_refresh <- function(run = FALSE, include = NULL, force = NULL, baseline
   message("\n")
   .print_plan(plan[plan$status %in% c("rebuilt", "FAILED", "skipped", "rebuilt with shinydata"), ])
   built <- plan$step[plan$status %in% c("rebuilt", "rebuilt with shinydata")]
-  message("\nNext: Install & Restart (Ctrl+Shift+B) so the installed DP2R has the new data, then commit and push.",
+  ver_note <- ""
+  if (bump_version && length(built)) {
+    v <- .bump_version(repo)
+    if (!is.null(v)) {
+      ver_note <- paste0("\nDP2R version bumped ", v[1], " -> ", v[2], ".")
+      .write_history(hist_file, data.frame(time = format(Sys.time(), "%Y-%m-%d %H:%M:%S"), step = "DESCRIPTION",
+                                           action = "version", reason = paste(v, collapse = " -> "), minutes = 0))
+    }
+  }
+  message(ver_note,
+          "\nNext: Install & Restart (Ctrl+Shift+B) so the installed DP2R has the new data, then commit and push.",
           if (any(c("Effort_all", "shinydata") %in% built)) "\n  - Angler_Effort: re-run data/Create_datafiles.R" else "",
           if (any(c("Effort_all", "shinydata", "Lakes") %in% built)) "\n  - Shiny.lake.report: re-run data/Create_datafiles.R" else "")
   invisible(plan)
@@ -351,6 +364,27 @@ DP2Rdata_refresh <- function(run = FALSE, include = NULL, force = NULL, baseline
   paste0(length(setdiff(names(kn), names(ko))), " lakes added, ",
          length(setdiff(names(ko), names(kn))), " removed, ",
          sum(ko[both] != kn[both]), " changed")
+}
+
+#Add 0.0.1 to Version in DESCRIPTION (keeps the file's line endings). Returns c(old, new) or NULL.
+.bump_version <- function(repo) {
+  f <- file.path(repo, "DESCRIPTION")
+  raw <- readBin(f, "raw", file.info(f)$size)
+  txt <- rawToChar(raw)
+  eol <- if (grepl("\r\n", txt, fixed = TRUE)) "\r\n" else "\n"
+  lines <- strsplit(txt, eol, fixed = TRUE)[[1]]
+  i <- grep("^Version:", lines)
+  if (length(i) != 1) return(NULL)
+  old <- trimws(sub("^Version:", "", lines[i]))
+  parts <- strsplit(old, ".", fixed = TRUE)[[1]]
+  if (!length(parts) || !all(grepl("^[0-9]+$", parts))) return(NULL)
+  if (length(parts) < 3) parts <- c(parts, rep("0", 3 - length(parts)))
+  parts[length(parts)] <- as.character(as.integer(parts[length(parts)]) + 1L)
+  new <- paste(parts, collapse = ".")
+  lines[i] <- paste0("Version: ", new)
+  out <- paste0(paste(lines, collapse = eol), if (grepl(paste0(eol, "$"), txt)) eol else "")
+  writeBin(charToRaw(out), f)
+  c(old, new)
 }
 
 .write_history <- function(file, row) {

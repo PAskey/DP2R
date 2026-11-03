@@ -28,8 +28,10 @@ sby2age<- function(Spp_code = NULL, sby_code = NULL, Year = NULL){
   # Ensure Spp_code is a vector to vectorize
   Spp_code <- as.vector(Spp_code)
 
-  # Find the corresponding diff_by values (the difference between fertilization and hatch year for fall versus spring spawners) for the given species code(s)
-  diff_bys <- DP2R::Species$brood_year_diff[match(Spp_code, DP2R::Species$species_code)]
+  # Fall spawners hatch the year after fertilization (diff = 1); spring/winter spawners same year (0)
+  season   <- DP2R::Species$season_code[match(Spp_code, DP2R::Species$species_code)]
+  diff_bys <- ifelse(season == "FA", 1, 0)
+
 
   # Check if any species code is not found in the lookup table
   if (any(is.na(diff_bys))) {

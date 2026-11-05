@@ -11,3 +11,9 @@
 [38;5;232m[33m![38;5;232m `alias` must be a vector, not a function.[39m",0.2
 "2026-11-02 21:58:46","lake_names","built","lake_names: 16693 -> 16750 rows",0.2
 "2026-11-02 22:13:57","FISS_Spp","built","FISS_Spp: 69883 -> 35930 rows",2.8
+"2026-11-05 14:13:23","gillnet_selectivity","failed","[38;5;232m[36mℹ[38;5;232m In argument: `Big_bin = FSA::lencat(...)`.[39m
+[1mCaused by error:[22m
+[33m![39m Lowest break (c(`80-249` = 80)) is larger than minimum observation (65).",2.6
+"2026-11-05 14:25:07","gillnet_selectivity","failed","It is impossible to invert the matrix. Please change starting parameters (x0) or the method (rtype) and try again.",0.6
+"2026-11-05 14:29:57","gillnet_selectivity","built","best_models: 11 -> 13 rows, approx_select_spp: 50 -> 50 rows, sel_lookup: 605 -> 715 rows, sel_classes: 826 -> 826 rows, sel_lookup_event: 1785 -> 1843 rows",2.4
+"2026-11-05 14:30:11","DESCRIPTION","version","1.2.0 -> 1.2.1",0

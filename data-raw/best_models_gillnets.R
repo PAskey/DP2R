@@ -30,8 +30,10 @@ df = Bio_data_w_meshes%>%
   dplyr::select(gazetted_name, year, species_code, strain, length_mm, mesh_size_code)%>%
   dplyr::filter(!is.na(length_mm))#drop headless fish
 
-breaks = c(80,250,400)
-names(breaks) = c("80-249","250-399",">=400")
+#Lowest break 50 mm: smallest realistic gillnet catch (PMB at 65 mm). lencat() stops with an
+#error if any fish is shorter, which flags bad length data rather than silently binning it.
+breaks = c(50,250,400)
+names(breaks) = c("50-249","250-399",">=400")
 
 df = df%>%
   mutate(Length_Bin = FSA::lencat(length_mm, 10),
@@ -106,14 +108,28 @@ fit_selectivity <- function(df, spp_code) {
 
 
 
+  #Fit each curve; a curve that fails to converge (e.g. bimodal start values tuned for trout
+  #applied to a small-bodied species like PMB) is reported and skipped, not fatal.
+  try_fit <- function(rtype, x0 = NULL) {
+    tryCatch(select_Millar(mesh_mat, x0 = x0, rtype = rtype, plot = FALSE),
+             error = function(e) {
+               message(spp_code, ": ", rtype, " model failed and was skipped (", conditionMessage(e), ")")
+               NULL
+             })
+  }
+
   models <- list()
-  models[[1]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "norm.loc",   plot = FALSE)
-  models[[2]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "norm.sca",   plot = FALSE)
-  models[[3]] <- select_Millar(mesh_mat, x0 = NULL, rtype = "lognorm",    plot = FALSE)
-  if (n_mesh >= 4) models[[4]] <- select_Millar(mesh_mat, x0=x0_binorm,  rtype="binorm.sca", plot=FALSE)
-  if (n_mesh >= 4 & spp_code!="BNH") models[[5]] <- select_Millar(mesh_mat, x0=x0_bilognorm, rtype="bilognorm",  plot=FALSE)
+  models[[1]] <- try_fit("norm.loc")
+  models[[2]] <- try_fit("norm.sca")
+  models[[3]] <- try_fit("lognorm")
+  if (n_mesh >= 4) models[[4]] <- try_fit("binorm.sca", x0_binorm)
+  if (n_mesh >= 4 & spp_code!="BNH") models[[5]] <- try_fit("bilognorm", x0_bilognorm)
 
   models <- Filter(Negate(is.null), models)
+  if (!length(models)) {
+    warning(spp_code, ": no selectivity model could be fitted; species left out of best_models.", call. = FALSE)
+    return(NULL)
+  }
 
   Model      <- vapply(models, function(x) x$rtype,                  character(1))
   value      <- vapply(models, function(x) round(x$value, 0),        numeric(1))
@@ -161,6 +177,8 @@ fits_list <- lapply(species_vec, function(spp) {
   fit_selectivity(df, spp)
 })
 names(fits_list) <- species_vec
+fits_list <- Filter(Negate(is.null), fits_list)#drop species where no model fitted
+species_vec <- names(fits_list)
 
 summary_all <- dplyr::bind_rows(lapply(fits_list, `[[`, "summary"))
 kable(summary_all)

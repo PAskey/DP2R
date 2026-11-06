@@ -23,3 +23,9 @@
 "2026-11-06 15:35:17","Effort_external","built","Effort_external: 8445 -> 8445 rows",0
 "2026-11-06 15:35:21","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
 "2026-11-06 15:35:26","DESCRIPTION","version","1.2.1 -> 1.2.2",0
+"2026-11-06 21:43:38","Elev_ice_estimates","built","Elev_ice_estimates: 16695 -> 16697 rows",2.3
+"2026-11-06 21:44:04","Lakes","built","Lakes: 16695 -> 16697 rows; 2 lakes added, 0 removed, 0 changed",0.4
+"2026-11-06 21:44:23","lake_names","built","lake_names: 16751 -> 16753 rows",0.2
+"2026-11-06 21:44:28","Effort_external","built","Effort_external: 8445 -> 8445 rows",0
+"2026-11-06 21:44:33","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
+"2026-11-06 21:44:41","DESCRIPTION","version","1.2.3 -> 1.2.4",0

@@ -17,3 +17,9 @@
 "2026-11-05 14:25:07","gillnet_selectivity","failed","It is impossible to invert the matrix. Please change starting parameters (x0) or the method (rtype) and try again.",0.6
 "2026-11-05 14:29:57","gillnet_selectivity","built","best_models: 11 -> 13 rows, approx_select_spp: 50 -> 50 rows, sel_lookup: 605 -> 715 rows, sel_classes: 826 -> 826 rows, sel_lookup_event: 1785 -> 1843 rows",2.4
 "2026-11-05 14:30:11","DESCRIPTION","version","1.2.0 -> 1.2.1",0
+"2026-11-06 15:34:26","Elev_ice_estimates","built","Elev_ice_estimates: 16838 -> 16695 rows",2.1
+"2026-11-06 15:34:56","Lakes","built","Lakes: 16694 -> 16695 rows; 1 lakes added, 0 removed, 120 changed",0.4
+"2026-11-06 15:35:14","lake_names","built","lake_names: 16750 -> 16751 rows",0.2
+"2026-11-06 15:35:17","Effort_external","built","Effort_external: 8445 -> 8445 rows",0
+"2026-11-06 15:35:21","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
+"2026-11-06 15:35:26","DESCRIPTION","version","1.2.1 -> 1.2.2",0

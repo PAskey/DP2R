@@ -9,6 +9,7 @@ DP2Rdata_refresh(
   include = NULL,
   force = NULL,
   baseline = FALSE,
+  bump_version = TRUE,
   repo = ".",
   .query = NULL
 )
@@ -24,6 +25,10 @@ Datasets that depend on them are rebuilt too.}
 
 \item{baseline}{Logical. Record the current stored data as up to date without
 rebuilding anything. Use once to start the log, or after rebuilding by hand.}
+
+\item{bump_version}{Logical (default TRUE). After a run that rebuilt anything, add 0.0.1
+to the package version in DESCRIPTION (e.g. 1.2.0 -> 1.2.1), so the installed version
+shows which data release you have.}
 
 \item{repo}{Path to the DP2R source folder (default: working directory).}
 

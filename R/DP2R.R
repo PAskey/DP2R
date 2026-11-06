@@ -266,6 +266,21 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
     if (!is.null(ret) && is.data.frame(ret) && !as.raw) {
       ret <- rename_columns_if_present(ret)
       ret <- remove_na_wbid(ret)  # Remove rows with NA in WBID
+      # Fill a blank accepted brood year from the lab (aged) or submitted brood year,
+      # so ages loaded but never confirmed as accepted_brood_year are not lost.
+      # brood_year_source records where each value came from.
+      if (tb == "vwIndividualFish" && "brood_year" %in% names(ret)) {
+        aged <- if ("aged_brood_year" %in% names(ret)) ret$aged_brood_year else NA
+        subm <- if ("submitted_brood_year" %in% names(ret)) ret$submitted_brood_year else NA
+        ret <- ret %>%
+          dplyr::mutate(
+            brood_year_source = dplyr::case_when(
+              !is.na(brood_year) ~ "accepted",
+              !is.na(aged) ~ "aged",
+              !is.na(subm) ~ "submitted",
+              TRUE ~ NA_character_),
+            brood_year = dplyr::coalesce(as.numeric(brood_year), as.numeric(aged), as.numeric(subm)))
+      }
       # If the current table is vwWaterbody, apply aggregation
       if (tb == "vwWaterbody") {
         ret <- aggregate_vwWaterbody(ret)

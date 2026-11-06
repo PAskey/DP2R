@@ -29,7 +29,7 @@
 #' @importFrom magrittr "%>%"
 
 
-DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
+DP2R <- function(Tables = c("vwRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
                  as.raw = FALSE,
@@ -287,17 +287,11 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
       ret <- remove_na_wbid(ret)  # Remove rows with NA in WBID
       # Fill a blank accepted brood year from the lab (aged) or submitted brood year,
       # so ages loaded but never confirmed as accepted_brood_year are not lost.
-      # brood_year_source records where each value came from.
       if (tb == "vwIndividualFish" && "brood_year" %in% names(ret)) {
         aged <- if ("aged_brood_year" %in% names(ret)) ret$aged_brood_year else NA
         subm <- if ("submitted_brood_year" %in% names(ret)) ret$submitted_brood_year else NA
         ret <- ret %>%
           dplyr::mutate(
-            brood_year_source = dplyr::case_when(
-              !is.na(brood_year) ~ "accepted",
-              !is.na(aged) ~ "aged",
-              !is.na(subm) ~ "submitted",
-              TRUE ~ NA_character_),
             brood_year = dplyr::coalesce(as.numeric(brood_year), as.numeric(aged), as.numeric(subm)))
       }
       # If the current table is vwWaterbody, apply aggregation
@@ -352,17 +346,11 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
           # Fill a blank accepted age from the (filled) brood year, so fish with
           # only an aged/submitted brood year also carry an age before linkClips()
           # runs its stocked-age test. Done here because `year` is set above.
-          # age_source: "accepted", or "<brood_year_source>_brood_year".
           if (tb == "vwIndividualFish" && all(c("age", "brood_year") %in% names(ret))) {
-            by_src <- if ("brood_year_source" %in% names(ret)) ret$brood_year_source else "accepted"
             ret <- ret %>%
               dplyr::mutate(
                 .age_by = suppressWarnings(as.numeric(
                   DP2R::sby2age(species_code, as.numeric(brood_year), year))),
-                age_source = dplyr::case_when(
-                  !is.na(age) ~ "accepted",
-                  !is.na(.age_by) ~ paste0(by_src, "_brood_year"),
-                  TRUE ~ NA_character_),
                 age = dplyr::coalesce(as.numeric(age), .age_by)) %>%
               dplyr::select(-.age_by)
           }

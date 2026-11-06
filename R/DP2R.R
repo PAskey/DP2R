@@ -330,6 +330,24 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
           ret <- ret %>%
             dplyr::filter(!(Sample_event %in% Bad_data))
 
+          # Fill a blank accepted age from the (filled) brood year, so fish with
+          # only an aged/submitted brood year also carry an age before linkClips()
+          # runs its stocked-age test. Done here because `year` is set above.
+          # age_source: "accepted", or "<brood_year_source>_brood_year".
+          if (tb == "vwIndividualFish" && all(c("age", "brood_year") %in% names(ret))) {
+            by_src <- if ("brood_year_source" %in% names(ret)) ret$brood_year_source else "accepted"
+            ret <- ret %>%
+              dplyr::mutate(
+                .age_by = suppressWarnings(as.numeric(
+                  DP2R::sby2age(species_code, as.numeric(brood_year), year))),
+                age_source = dplyr::case_when(
+                  !is.na(age) ~ "accepted",
+                  !is.na(.age_by) ~ paste0(by_src, "_brood_year"),
+                  TRUE ~ NA_character_),
+                age = dplyr::coalesce(as.numeric(age), .age_by)) %>%
+              dplyr::select(-.age_by)
+          }
+
 
         }
 }}

@@ -12,9 +12,13 @@
 #' @param exclude_types A text string or vector describing data types to omit from the data set. The default is "geography" because R does not handle that datatype. That means any columns with point data in the geography datatype are removed from the dataset (there is still lat-long data that can be used).
 #' @param envir Environment to assign results into (default: .GlobalEnv).
 #' @param as.raw Logical; if TRUE, keep data in raw DB format (only excluded-type filtering is applied; no renaming/coalescing/aggregation). Default: FALSE.
+#' @param where Optional named character vector (or list) of extra SQL conditions, one per table, applied in the
+#'   database before download so fewer rows cross the network. Names are table names; values are SQL using the
+#'   table's RAW column names (e.g. \code{waterbody_identifier}, not \code{WBID}). Example:
+#'   \code{where = c(vwRelease = "waterbody_identifier NOT LIKE '00000\%'")}. Default NULL (no extra filters).
 #' @examples
 #'   conn <- DBI::dbConnect(drv = odbc::odbc(),
-#'   Driver = 'SQL Server',
+#'   Driver = 'ODBC Driver 18 for SQL Server',
 #'   server = 'tcp:gofishbc.database.windows.net,1433',
 #'   database = 'DataPond',
 #'   uid = uid,
@@ -28,12 +32,13 @@
 DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "vwCollectCount","vwFishCollection","vwWaterbody","Species", "SampleDesign_MeshSizeCode"),
                  exclude_types = c("geography", "varbinary", "ntext"),
                  envir = .GlobalEnv,
-                 as.raw = FALSE) {
+                 as.raw = FALSE,
+                 where = NULL) {
 
 
   if(!exists("conn")|!DBI::dbIsValid(conn)){stop("First you must establish a connection to DataPond or DataPond_STAGE in R and assign to 'conn' object. Use example code with your personal uid and pwd. Note this often fails on first attempt (some sort of timeout lag with Azure, but then works when you re-run the code
   conn <- DBI::dbConnect(drv = odbc::odbc(),
-                         Driver = 'SQL Server'',
+                         Driver = 'ODBC Driver 18 for SQL Server'',
                          server = 'tcp:gofishbc.database.windows.net,1433',
                          database = 'DataPond',
                          uid = uid,
@@ -44,14 +49,13 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
   refresh_reminder(conn)
 
 
-  # Ensure vwPaAssessEvent is included if dependent tables (neededin assess_event_name) are requested
-  #Can remove this if get a consistent assess_event_name or asses_event_id across all views.
-  dependent_tables <- c("vwFishCollection", "vwCollectCount", "vwIndividualFish")
+  #vwPaAssessEvent used to be added automatically whenever vwFishCollection, vwCollectCount or
+  #vwIndividualFish was requested, but nothing uses it: assess_event_name is a column of those
+  #views. Request it in Tables if you need it (it is still in the default Tables list).
 
-  if (any(Tables %in% dependent_tables)) {
-    Tables <- unique(c(Tables, "vwPaAssessEvent"))
+  if (!is.null(where) && (is.null(names(where)) || any(!nzchar(names(where))))) {
+    stop("`where` must be named by table, e.g. where = c(vwRelease = \"...\").")
   }
-
 
   # Identify invalid tables or spelling mistakes
   invalid_tables <- Tables[!Tables %in% DBI::dbListTables(conn)]
@@ -64,9 +68,14 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
 
 
   # Optional SQL filters applied automatically when specific columns exist
-  build_where_clause <- function(col_names) {
+  build_where_clause <- function(col_names, table_name) {
 
     conditions <- character(0)
+
+    # Caller-supplied filter for this table (see `where` argument)
+    if (!is.null(where) && table_name %in% names(where)) {
+      conditions <- c(conditions, paste0("(", where[[table_name]], ")"))
+    }
 
     # Remove TL records from any table containing this field
     if ("water_analysis_type" %in% col_names) {
@@ -148,7 +157,7 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
     )
 
     # Build any automatic filters based on available columns
-    where_clause <- build_where_clause(col_info$name)
+    where_clause <- build_where_clause(col_info$name, table_name)
 
     sql <- sprintf(
       "SELECT %s FROM %s",
@@ -156,11 +165,21 @@ DP2R <- function(Tables = c("vwPaAssessEvent","vwRelease","vwIndividualFish", "v
       from_id
     )
 
-    if (!is.null(where_clause)) {
-      sql <- paste(sql, "WHERE", where_clause)
+    if (is.null(where_clause)) {
+      return(DBI::dbGetQuery(conn, sql))
     }
 
-    DBI::dbGetQuery(conn, sql)
+    tryCatch(
+      DBI::dbGetQuery(conn, paste(sql, "WHERE", where_clause)),
+      error = function(e) {
+        # A caller-supplied `where` filter must never break a pull: warn and retry without it
+        # (the automatic filters above are kept).
+        if (is.null(where) || !table_name %in% names(where)) stop(e)
+        warning("DP2R(): `where` filter for ", table_name, " failed (", conditionMessage(e),
+                "); pulling ", table_name, " without it.", call. = FALSE)
+        where_auto <- build_where_clause(col_info$name, "")
+        DBI::dbGetQuery(conn, if (is.null(where_auto)) sql else paste(sql, "WHERE", where_auto))
+      })
   }
 
 

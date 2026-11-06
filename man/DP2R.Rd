@@ -9,7 +9,8 @@ DP2R(
     "vwFishCollection", "vwWaterbody", "Species", "SampleDesign_MeshSizeCode"),
   exclude_types = c("geography", "varbinary", "ntext"),
   envir = .GlobalEnv,
-  as.raw = FALSE
+  as.raw = FALSE,
+  where = NULL
 )
 }
 \arguments{
@@ -21,6 +22,11 @@ DP2R(
 
 \item{as.raw}{Logical; if TRUE, keep data in raw DB format (only excluded-type filtering is applied; no renaming/coalescing/aggregation). Default: FALSE.}
 
+\item{where}{Optional named character vector (or list) of extra SQL conditions, one per table, applied in the
+database before download so fewer rows cross the network. Names are table names; values are SQL using the
+table's RAW column names (e.g. \code{waterbody_identifier}, not \code{WBID}). Example:
+\code{where = c(vwRelease = "waterbody_identifier NOT LIKE '00000\%'")}. Default NULL (no extra filters).}
+
 \item{DB}{A text string of "DataPond" (default production data) or "DataPond_STAGE" which is staged data to be reviewed before acceptance into production.}
 }
 \description{
@@ -30,7 +36,7 @@ Function only usable by FFSBC staff who have a direct or vpn connection to SLD.R
 }
 \examples{
   conn <- DBI::dbConnect(drv = odbc::odbc(),
-  Driver = 'SQL Server',
+  Driver = 'ODBC Driver 18 for SQL Server',
   server = 'tcp:gofishbc.database.windows.net,1433',
   database = 'DataPond',
   uid = uid,

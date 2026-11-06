@@ -21,15 +21,6 @@ Lakewater2R <- function(envir = globalenv(), keep.raw = FALSE) {
 
   target_env <- if (keep.raw) envir else NULL
 
-  vwLakeWater <- DP2R::DP2R(
-    Tables = "vwLakeWater",
-    envir = target_env
-  )[[1]]
-
-  vwLakeWater = vwLakeWater%>%
-    dplyr::filter(water_analysis_type!="TL")
-
-
   params = c(
     "Alkalinity - Low Level : Alkalinity (Total as CaCO3)",
     "Dissolved Oxygen",
@@ -39,6 +30,20 @@ Lakewater2R <- function(envir = globalenv(), keep.raw = FALSE) {
     "Total Dissolved Solids",
     "Total Phosphorus Low Level Total : Total Phosphorus (P)"
   )
+
+  #Only download the tests summarised below (filtered in the database), unless the full raw
+  #table was asked for with keep.raw = TRUE. The R filters below still run, so results match.
+  sql_filter <- if (keep.raw) NULL else
+    c(vwLakeWater = paste0("test_name IN (", paste0("'", params, "'", collapse = ", "), ")"))
+
+  vwLakeWater <- DP2R::DP2R(
+    Tables = "vwLakeWater",
+    envir = target_env,
+    where = sql_filter
+  )[[1]]
+
+  vwLakeWater = vwLakeWater%>%
+    dplyr::filter(water_analysis_type!="TL")
 
   vwLakeWater <- vwLakeWater %>%
     dplyr::filter(test_name %in% params) %>%

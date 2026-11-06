@@ -314,8 +314,11 @@ vwCollectCount<<- vwCollectCount %>%
   dplyr::left_join(DP2R::lake_names[,c("WBID","locale_name")], by = "WBID")%>%
   dplyr::relocate(locale_name, .after = WBID)
 
-vwWaterbody<<- vwWaterbody %>%
-  dplyr::relocate(locale_name, .after = WBID)
+#vwWaterbody is optional (slow to pull and not needed by linkClips); tidy it only if loaded
+if (exists("vwWaterbody")) {
+  vwWaterbody<<- vwWaterbody %>%
+    dplyr::relocate(locale_name, .after = WBID)
+}
 
 
 Biological<<-Biological

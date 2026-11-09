@@ -43,13 +43,9 @@ link_releases <- function(){
     dplyr::mutate(area_ha = dplyr::coalesce(area_ha, rel_area_ha)) %>%
     dplyr::select(-rel_area_ha) %>%
     dplyr::mutate(
-      lifestage_code = dplyr::if_else(lifestage_code %in% c("CA1","CA2"), "CA", lifestage_code),
-      #Fall spawners (EB, KO) spawn in fall of brood_year but the eggs do not hatch
-      #until the following year, so a genuine yearling is release_year - brood_year == 2.
-      lifestage_code = dplyr::if_else(
-        species_code %in% c("EB","KO") & lifestage_code == "YE" &
-          !dplyr::coalesce(release_year - brood_year == 2, FALSE),
-        "FR", lifestage_code),
+      #CA1/CA2 -> CA, and EB/KO "YE" that are not genuine yearlings -> FR (see std_lifestage(),
+      #which stock_performance() also applies to standing requests so the two always match)
+      lifestage_code = std_lifestage(species_code, lifestage_code, release_year, brood_year),
       age = sby2age(species_code, brood_year, release_year),
       quantity_ha = quantity/area_ha,
       biom_ha = biomass_kg/area_ha

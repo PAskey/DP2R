@@ -251,11 +251,32 @@ DP2R <- function(Tables = c("vwRelease","vwIndividualFish", "vwCollectCount","vw
     data
   }
 
-   #Function to aggregate vwWaterbody when multi records per lake and rename if alias is used
+   #Function to aggregate vwWaterbody when multi records per lake and rename if alias is used.
+   #Surface area is never averaged: it is taken from the active record (most recent row if
+   #several are active), so release densities use one current, active area per lake.
   aggregate_vwWaterbody <- function(data) {
-    data %>%
+    area <- NULL
+    if ("area_ha" %in% names(data)) {
+      area <- data %>%
+        dplyr::filter(!is.na(.data$area_ha)) %>%
+        dplyr::mutate(.row = dplyr::row_number(),
+                      .act = if ("active" %in% names(data)) .data$active %in% c(TRUE, "TRUE", 1) else TRUE) %>%
+        dplyr::group_by(.data$WBID) %>%
+        dplyr::arrange(dplyr::desc(.data$.act), dplyr::desc(.data$.row), .by_group = TRUE) %>%
+        dplyr::slice(1) %>%
+        dplyr::ungroup() %>%
+        dplyr::select("WBID", area_ha_active = "area_ha")
+    }
+    out <- data %>%
       dplyr::group_by(WBID) %>%
       dplyr::summarise(across(everything(), mean_or_concat), .groups = 'drop')
+    if (!is.null(area)) {
+      out <- out %>%
+        dplyr::left_join(area, by = "WBID") %>%
+        dplyr::mutate(area_ha = .data$area_ha_active) %>%
+        dplyr::select(-"area_ha_active")
+    }
+    out
  }
 
   # Function to determine mean for numeric and concatenate for character

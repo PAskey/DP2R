@@ -120,6 +120,9 @@ std_releases <- function(Releases = NULL, exclude_lifestages = "EE") {
     lifestage_code = as.character(pick(Releases, "lifestage_code")),
     quantity = as.numeric(pick(Releases, c("quantity", "Quantity"))),
     biomass_kg = as.numeric(pick(Releases, c("biomass_kg", "Biomass_kg"))),
+    #Optional columns (NA if absent): used to standardize life stage (std_lifestage())
+    brood_year = if ("brood_year" %in% names(Releases)) as.integer(Releases$brood_year) else NA_integer_,
+    size_g = if ("size_g" %in% names(Releases)) as.numeric(Releases$size_g) else NA_real_,
     stringsAsFactors = FALSE) %>%
     dplyr::filter(!(.data$lifestage_code %in% exclude_lifestages))
 }

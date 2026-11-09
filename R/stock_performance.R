@@ -12,9 +12,12 @@
 #' counts once regardless of how many methods measured it.
 #'
 #' Requested kg: if the request table has a weight or biomass column it is used.
-#' Otherwise kg is estimated from the mean individual weight of fish actually
-#' released over the same years, matching WBID x species x lifestage, then
-#' species x lifestage province-wide. Column \code{kg_basis} records which was used.
+#' Otherwise kg = requested fish x one province-wide average weight per species x
+#' life stage, from releases over the last \code{weight_years} release years (see
+#' \code{\link{release_weights}}). Strain, ploidy, hatchery and lake are deliberately
+#' ignored so requests are comparable across lakes. Request life stages are
+#' standardized with \code{\link{std_lifestage}} (e.g. CA1/CA2 -> CA) to match releases.
+#' Column \code{kg_basis} records which was used ("request" or "prov_release").
 #'
 #' Lakes with effort but no active request get 0 requested fish (wild fisheries),
 #' so Fish_req_per_AD is 0 rather than undefined.
@@ -30,6 +33,7 @@
 #' @param Releases Release records, used only to estimate kg when requests have no
 #'   weight. Same options as \code{\link{effort_stocking}}.
 #' @param window Number of years of effort to average (default 4).
+#' @param weight_years Number of most recent release years used for average weights (default 5).
 #' @param last_year Most recent effort year to include. Default is last calendar
 #'   year, so the effort years are (last_year - window + 1):last_year.
 #' @return One row per lake with requests and/or effort in the window:
@@ -37,7 +41,7 @@
 #'   \item{Req_spp, Req_stages}{Species and lifestages with active requests}
 #'   \item{Req_fish_yr}{Requested fish per year}
 #'   \item{Req_kg_yr}{Requested kg per year}
-#'   \item{kg_basis}{How Req_kg_yr was obtained: "request", "lake_release", "prov_release", or mixed}
+#'   \item{kg_basis}{How Req_kg_yr was obtained: "request", "prov_release", or mixed}
 #'   \item{mean_AD}{Average angler days per year over the window}
 #'   \item{N_effort_yrs, Effort_methods}{Number of years and methods behind mean_AD}
 #'   \item{Fish_req_per_AD}{Req_fish_yr / mean_AD}
@@ -51,7 +55,8 @@
 #' @importFrom rlang .data
 
 stock_performance <- function(Requests = NULL, Effort = DP2R::Effort_all, Releases = NULL,
-                              window = 4, last_year = as.integer(format(Sys.Date(), "%Y")) - 1) {
+                              window = 4, last_year = as.integer(format(Sys.Date(), "%Y")) - 1,
+                              weight_years = 5) {
 
   if (is.null(Requests)) {
     if (!exists("vwStandingRequestsForBio", envir = .GlobalEnv)) DP2R(Tables = "vwStandingRequestsForBio")
@@ -63,6 +68,10 @@ stock_performance <- function(Requests = NULL, Effort = DP2R::Effort_all, Releas
   #Requests -> fish (and kg) per year
   RQ <- Requests
   if ("active" %in% names(RQ)) RQ <- RQ[RQ$active %in% TRUE, ]
+  #Same life stage rules as link_releases() (CA1/CA2 -> CA; EB/KO non-yearling YE -> FR)
+  RQ$lifestage_code <- std_lifestage(RQ$species_code, RQ$lifestage_code,
+                                     if ("release_year" %in% names(RQ)) RQ$release_year else NULL,
+                                     if ("brood_year" %in% names(RQ)) RQ$brood_year else NULL)
 
   freq <- tolower(trimws(as.character(RQ$frequency)))
   RQ$interval <- dplyr::case_when(
@@ -93,28 +102,23 @@ stock_performance <- function(Requests = NULL, Effort = DP2R::Effort_all, Releas
     dplyr::mutate(kg = dplyr::if_else(is.finite(.data$kg), .data$kg, NA_real_),
                   kg_basis = dplyr::if_else(is.na(.data$kg), NA_character_, "request"))
 
-  #Estimate missing kg from mean weight of released fish in the same years
+  #Estimate missing kg from the province-wide average weight per species x life stage
   if (any(is.na(Prod$kg))) {
-    rel <- std_releases(Releases, exclude_lifestages = character(0)) %>%
-      dplyr::filter(.data$release_year %in% years, .data$quantity > 0, .data$biomass_kg > 0)
-    w_lake <- rel %>%
-      dplyr::group_by(.data$WBID, .data$species_code, .data$lifestage_code) %>%
-      dplyr::summarise(kg_fish_lake = sum(.data$biomass_kg) / sum(.data$quantity), .groups = "drop")
-    w_prov <- rel %>%
-      dplyr::group_by(.data$species_code, .data$lifestage_code) %>%
-      dplyr::summarise(kg_fish_prov = sum(.data$biomass_kg) / sum(.data$quantity), .groups = "drop")
+    w_prov <- release_weights(Releases, n_years = weight_years, end_year = last_year + 1) %>%
+      dplyr::transmute(species_code = .data$species_code, lifestage_code = .data$lifestage_code,
+                       kg_fish_prov = .data$avg_weight_g / 1000)
     Prod <- Prod %>%
-      dplyr::left_join(w_lake, by = c("WBID", "species_code", "lifestage_code")) %>%
       dplyr::left_join(w_prov, by = c("species_code", "lifestage_code")) %>%
       dplyr::mutate(
         kg_basis = dplyr::case_when(!is.na(.data$kg) ~ .data$kg_basis,
-                                    !is.na(.data$kg_fish_lake) ~ "lake_release",
                                     !is.na(.data$kg_fish_prov) ~ "prov_release",
                                     TRUE ~ NA_character_),
-        kg = dplyr::coalesce(.data$kg, .data$N * .data$kg_fish_lake, .data$N * .data$kg_fish_prov)) %>%
-      dplyr::select(-"kg_fish_lake", -"kg_fish_prov")
+        kg = dplyr::coalesce(.data$kg, .data$N * .data$kg_fish_prov)) %>%
+      dplyr::select(-"kg_fish_prov")
     if (any(is.na(Prod$kg)))
-      warning(sum(is.na(Prod$kg)), " requested products have no release weights to estimate kg; their kg are left out of Req_kg_yr")
+      warning(sum(is.na(Prod$kg)), " requested products have no release weights to estimate kg (",
+              paste(unique(paste(Prod$species_code[is.na(Prod$kg)], Prod$lifestage_code[is.na(Prod$kg)])), collapse = ", "),
+              "); their kg are left out of Req_kg_yr")
   }
 
   Req <- Prod %>%
@@ -159,5 +163,46 @@ stock_performance <- function(Requests = NULL, Effort = DP2R::Effort_all, Releas
     dplyr::relocate("region_code", "locale_name", "area_ha", .after = "WBID") %>%
     dplyr::mutate(effort_years = paste0(min(years), "-", max(years))) %>%
     dplyr::arrange(.data$region_code, .data$WBID) %>%
+    as.data.frame()
+}
+
+
+#' Average weight at release by species and life stage
+#'
+#' One province-wide average weight per species x life stage from recent releases,
+#' used by \code{stock_performance()} to convert requested fish to kg. Strain, ploidy,
+#' hatchery and lake are deliberately ignored (e.g. every RB yearling gets the same
+#' weight), so requests are comparable across lakes. Life stages are standardized
+#' with \code{\link{std_lifestage}}. Average weight is total biomass / total fish
+#' released (fish-weighted), so expected kg = quantity x avg_weight_g / 1000.
+#'
+#' @title release_weights
+#' @name release_weights
+#' @keywords DP2R; releases; weight; requests
+#' @export
+#' @param Releases Release records (vwRelease or link_releases() output). If NULL, uses
+#'   \code{Releases} or \code{vwRelease} from the global environment.
+#' @param n_years Number of most recent release years to average over (default 5).
+#' @param end_year Last release year included (default current year).
+#' @return Data frame: species_code, lifestage_code, n_releases, avg_weight_g, median_g.
+#' @examples
+#' #Must be connected to VPN if working remotely
+#' link_releases()
+#' release_weights(Releases)
+#' @importFrom magrittr "%>%"
+#' @importFrom rlang .data
+release_weights <- function(Releases = NULL, n_years = 5,
+                            end_year = as.integer(format(Sys.Date(), "%Y"))) {
+  std_releases(Releases, exclude_lifestages = character(0)) %>%
+    dplyr::filter(.data$release_year > end_year - n_years, .data$release_year <= end_year,
+                  is.finite(.data$quantity), .data$quantity > 0,
+                  is.finite(.data$biomass_kg), .data$biomass_kg > 0) %>%
+    dplyr::mutate(lifestage_code = std_lifestage(.data$species_code, .data$lifestage_code,
+                                                 .data$release_year, .data$brood_year)) %>%
+    dplyr::group_by(.data$species_code, .data$lifestage_code) %>%
+    dplyr::summarise(n_releases   = dplyr::n(),
+                     avg_weight_g = round(1000 * sum(.data$biomass_kg) / sum(.data$quantity), 1),
+                     median_g     = round(stats::median(.data$size_g, na.rm = TRUE), 1),
+                     .groups = "drop") %>%
     as.data.frame()
 }

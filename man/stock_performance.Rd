@@ -9,7 +9,8 @@ stock_performance(
   Effort = DP2R::Effort_all,
   Releases = NULL,
   window = 4,
-  last_year = as.integer(format(Sys.Date(), "\%Y")) - 1
+  last_year = as.integer(format(Sys.Date(), "\%Y")) - 1,
+  weight_years = 5
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ weight. Same options as \code{\link{effort_stocking}}.}
 
 \item{last_year}{Most recent effort year to include. Default is last calendar
 year, so the effort years are (last_year - window + 1):last_year.}
+
+\item{weight_years}{Number of most recent release years used for average weights (default 5).}
 }
 \value{
 One row per lake with requests and/or effort in the window:
@@ -33,7 +36,7 @@ One row per lake with requests and/or effort in the window:
   \item{Req_spp, Req_stages}{Species and lifestages with active requests}
   \item{Req_fish_yr}{Requested fish per year}
   \item{Req_kg_yr}{Requested kg per year}
-  \item{kg_basis}{How Req_kg_yr was obtained: "request", "lake_release", "prov_release", or mixed}
+  \item{kg_basis}{How Req_kg_yr was obtained: "request", "prov_release", or mixed}
   \item{mean_AD}{Average angler days per year over the window}
   \item{N_effort_yrs, Effort_methods}{Number of years and methods behind mean_AD}
   \item{Fish_req_per_AD}{Req_fish_yr / mean_AD}
@@ -56,9 +59,12 @@ mean across methods within a year, then the mean across years, so each year
 counts once regardless of how many methods measured it.
 
 Requested kg: if the request table has a weight or biomass column it is used.
-Otherwise kg is estimated from the mean individual weight of fish actually
-released over the same years, matching WBID x species x lifestage, then
-species x lifestage province-wide. Column \code{kg_basis} records which was used.
+Otherwise kg = requested fish x one province-wide average weight per species x
+life stage, from releases over the last \code{weight_years} release years (see
+\code{\link{release_weights}}). Strain, ploidy, hatchery and lake are deliberately
+ignored so requests are comparable across lakes. Request life stages are
+standardized with \code{\link{std_lifestage}} (e.g. CA1/CA2 -> CA) to match releases.
+Column \code{kg_basis} records which was used ("request" or "prov_release").
 
 Lakes with effort but no active request get 0 requested fish (wild fisheries),
 so Fish_req_per_AD is 0 rather than undefined.

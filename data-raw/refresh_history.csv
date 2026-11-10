@@ -35,3 +35,7 @@
 "2026-11-09 23:41:43","Effort_external","built","Effort_external: 8445 -> 8445 rows",0
 "2026-11-09 23:41:48","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
 "2026-11-09 23:41:53","DESCRIPTION","version","1.2.5 -> 1.2.6",0
+"2026-11-10 23:29:02","Mgt_Region_Unit","built","Mgt_Region_Unit: 12613 -> 12616 rows",7.8
+"2026-11-10 23:29:13","Effort_external","built","Effort_external: 8445 -> 8445 rows",0.1
+"2026-11-10 23:29:20","Effort_all","built","Effort_all: 16537 -> 16537 rows, lakesum: 3118 -> 3118 rows",0
+"2026-11-10 23:29:30","DESCRIPTION","version","1.2.6 -> 1.2.7",0

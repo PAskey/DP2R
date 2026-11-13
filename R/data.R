@@ -535,3 +535,54 @@ NULL
 #' head(FISS_Spp)
 "FISS_Spp"
 NULL
+
+# ----------------------------------------------------------------------
+#' Lake water colour from Sentinel-2
+#'
+#' Typical open-water colour of stocked lakes (stocked in the 10 years before
+#' the build), from Sentinel-2 surface reflectance, July-September 2019-2025,
+#' trimmed for ice, cloud, glint and partly clear scenes. Each scene is
+#' summarised over deep-water pixels (darker than the lake's median green) inside
+#' an inward shoreline buffer; the lake values are medians across scenes. Hue
+#' angle and Forel-Ule (FU) index follow van der Woerd & Wernand (2018, Remote
+#' Sensing 10:180). No colour category is assigned yet.
+#'
+#' @format A data frame with one row per lake and the following columns:
+#' \describe{
+#'   \item{WBID}{Character. Waterbody identifier.}
+#'   \item{region_code}{Character. Management region.}
+#'   \item{name}{Character. Gazetted or locale name.}
+#'   \item{status}{Character. "ok", or why there is no colour: "no FWA polygon",
+#'     "too small for Sentinel-2", "no usable scenes", "Earth Engine request failed".}
+#'   \item{reliability}{Character. "high" (>= 10 scenes, >= 50 pixels, FU IQR <= 1),
+#'     "moderate" (>= 5 scenes, >= 15 pixels, FU IQR <= 2) or "low".}
+#'   \item{fu}{Integer. FU index of the median hue (1 = blue ... 21 = brown).}
+#'   \item{fu_p10, fu_p90}{Integer. 10th and 90th percentile FU across scenes.}
+#'   \item{hue, hue_p10, hue_p90}{Numeric. Median, 10th and 90th percentile hue
+#'     angle (degrees) across scenes. Values below ~20 or above ~240 are outside
+#'     the calibrated range (usually dark or noisy scenes).}
+#'   \item{brightness}{Numeric. Median visible reflectance, mean of B2-B4.}
+#'   \item{green_refl}{Numeric. Median green reflectance (B3).}
+#'   \item{blue_green}{Numeric. Median blue:green ratio (B2/B3); high = clear blue.}
+#'   \item{red_green}{Numeric. Median red:green ratio (B4/B3); high = brown/tannin.}
+#'   \item{nir}{Numeric. Median near-infrared reflectance (B8); high = bottom,
+#'     plants or turbidity may affect colour.}
+#'   \item{n_scenes, n_years}{Integer. Scenes and years used.}
+#'   \item{med_pix}{Numeric. Median clear-water 20 m pixels per scene.}
+#'   \item{swatch}{Character. Hex colour of the median spectrum at fixed brightness.}
+#'   \item{fwa_area_ha}{Numeric. Freshwater Atlas lake area (ha).}
+#'   \item{lake_area_trim_ha}{Numeric. Area left after the shoreline buffer (ha).}
+#'   \item{buffer_m}{Numeric. Inward buffer used (m): -25, or -10 for small lakes.}
+#' }
+#'
+#' @usage data(Lake_Colour)
+#'
+#' @source Built by \code{data-raw/Create_Lake_Colour.R} with Google Earth Engine
+#'   (COPERNICUS/S2_SR_HARMONIZED, Cloud Score+), Freshwater Atlas lake polygons
+#'   (bcdata) and DataPond stocking records (vwRelease).
+#'
+#' @examples
+#' data(Lake_Colour)
+#' head(Lake_Colour)
+"Lake_Colour"
+NULL

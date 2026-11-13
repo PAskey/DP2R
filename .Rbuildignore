@@ -7,3 +7,13 @@
 ^test_ExpCam\.R$
 ^date_flip_summary\.csv$
 ^stripped_model\.qs2$
+^water_colour_R6\.R$
+^water_colour_R6(_test)?$
+^water_colour_BC(_test)?$
+^water_colour_histograms\.R$
+^water_colour_correlations\.R$
+^water_colour_categories\.R$
+^water_colour_growth\.R$
+^water_colour_region_histograms\.R$
+^water_colour_shoal(_estimate)?\.R$
+^water_colour_bathy_maps\.R$
